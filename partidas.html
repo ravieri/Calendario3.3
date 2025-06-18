@@ -5,17 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendário de Partidas</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- tsParticles for background effects -->
     <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js"></script>
     
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #111827; }
         ::-webkit-scrollbar { width: 8px; }
@@ -34,33 +31,42 @@
         #sidebar { transition: transform 0.3s ease-in-out, width 0.3s ease-in-out; z-index: 40; }
         #sidebar.collapsed { transform: translateX(-100%); width: 0; padding: 0; }
         
-        /* Novo estilo para o contêiner de partículas do calendário */
         #calendar-background-particles {
             position: absolute;
-            top: 50%; /* Centraliza verticalmente */
-            left: 50%; /* Centraliza horizontalmente */
-            transform: translate(-50%, -50%); /* Ajusta para centralização verdadeira */
-            width: 80%; /* Largura ajustada para o notebook */
-            height: 80%; /* Altura ajustada para o notebook */
-            max-width: 1000px; /* Limita a largura máxima */
-            max-height: 600px; /* Limita a altura máxima */
-            z-index: 0; /* Garante que fique atrás do conteúdo do calendário */
-            border-radius: 50%; /* Opcional: para dar um formato circular ao contêiner de partículas */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            max-width: 1000px;
+            max-height: 600px;
+            z-index: 0;
+            border-radius: 50%;
         }
 
         .reminder-bell.active { color: #facc15; } /* yellow-400 */
+
+        /* Estilos para a seção de comentários recolhível */
+        .comments-collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            opacity: 0;
+        }
+        .comments-collapsible-content.open {
+            max-height: 500px; /* Um valor grande o suficiente para a maioria dos comentários */
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="text-gray-200">
     
-    <!-- Removido: <div id="tsparticles"></div> -->
-
     <div class="flex h-screen overflow-hidden">
         <aside id="sidebar" class="w-72 bg-gray-900 p-6 flex flex-col space-y-6 overflow-y-auto">
             <h2 class="text-2xl font-bold text-white whitespace-nowrap">Navegação</h2>
             <nav>
                 <ul>
-                    <li><a href="partidas.html" class="block py-2 px-4 rounded-lg bg-indigo-600 text-white">Calendário de Partidas</a></li>
+                    <li><a href="Partidas.html" class="block py-2 px-4 rounded-lg bg-indigo-600 text-white">Calendário de Partidas</a></li>
                     <li><a href="eventos.html" class="block py-2 px-4 rounded-lg hover:bg-gray-700">Eventos</a></li>
                 </ul>
             </nav>
@@ -116,28 +122,40 @@
             </div>
         </aside>
 
-        <!-- ÁREA PRINCIPAL -->
         <main class="flex-1 p-8 overflow-y-auto relative">
             <button id="sidebar-toggle" class="absolute top-6 left-6 z-30 p-2 rounded-full bg-gray-800 hover:bg-gray-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
 
+            <div id="auth-section" class="absolute top-6 right-6 z-30 space-y-2 text-right">
+                <div id="user-info" class="flex items-center space-x-2 justify-end hidden">
+                    <span id="user-name" class="text-gray-300 truncate"></span>
+                    <img id="user-photo" class="w-8 h-8 rounded-full" alt="User Photo">
+                </div>
+                <button id="login-button" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded hidden whitespace-nowrap">
+                    Login com Google
+                </button>
+                <button id="logout-button" class="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded hidden whitespace-nowrap">
+                    Sair
+                </button>
+                <p id="auth-status" class="text-sm text-gray-400"></p>
+            </div>
+
+
             <div class="flex items-center justify-center mb-6">
                 <h1 class="text-3xl font-bold text-white">Calendário de Partidas</h1>
             </div>
 
-            <!-- Novo contêiner para as partículas ao redor do calendário -->
             <div id="calendar-background-particles"></div>
             
             <div id="calendars-container" class="relative flex justify-center items-start">
-                <!-- Botões de navegação reposicionados dentro do calendars-container -->
                 <button id="prev-month" class="absolute top-0 left-0 p-2 rounded-full hover:bg-gray-700 z-10 mt-4 ml-4 text-white">&lt;</button>
                 <button id="next-month" class="absolute top-0 right-0 p-2 rounded-full hover:bg-gray-700 z-10 mt-4 mr-4 text-white">&gt;</button>
 
                 <div id="next-event-prompt" class="absolute inset-0 flex-col items-center justify-center bg-black bg-opacity-75 hidden z-20 rounded-lg p-8 text-center">
                     <p id="prompt-title" class="text-2xl font-bold text-white mb-4"></p>
                     <button id="jump-to-event-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg flex items-center transition-transform transform hover:scale-105">
-                        <span id="jump-text"></span><span id="jump-date" class="ml-2 font-black"></span><svg id="jump-arrow" class="w-6 h-6 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"></svg>
+                        <span id="jump-text"></span><span id="jump-date" class="ml-2 font-black"></span><svg id="jump-arrow" class="w-6 h-6 ml-2" fill="currentColor" viewBox="0 0 24 24"></svg>
                     </button>
                 </div>
                 
@@ -150,24 +168,69 @@
         </main>
     </div>
 
-    <!-- PAINEL LATERAL DE DETALHES DO DIA -->
     <div id="day-details-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 shadow-lg p-6 overflow-y-auto">
         <div class="flex justify-between items-center mb-6"><h2 id="details-title" class="text-2xl font-bold text-white">Eventos do Dia</h2><button id="close-details" class="p-2 rounded-full hover:bg-gray-700">X</button></div>
         <div id="details-content" class="space-y-4"></div>
-    </div>
+        
+        </div>
     
-    <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed bottom-5 right-5 w-full max-w-sm space-y-4 z-50">
         <div id="welcome-toast" class="bg-gray-800 rounded-lg shadow-lg text-white hidden transform transition-all duration-300 translate-y-16 p-4">
-            <div class="flex justify-between items-start"><div class="flex-1"><h3 class="font-bold">🔥 Fique de Olho!</h3><p id="toast-message" class="text-sm mt-1 whitespace-pre-wrap"></p></div><button id="close-toast" class="ml-2 text-gray-400 hover:text-white text-2xl leading-none">&times;</button></div>
+            <div class="flex justify-between items-start"><div class="flex-1"><h3 class="font-bold">� Fique de Olho!</h3><p id="toast-message" class="text-sm mt-1 whitespace-pre-wrap"></p></div><button id="close-toast" class="ml-2 text-gray-400 hover:text-white text-2xl leading-none">&times;</button></div>
         </div>
          <div id="reminder-toast" class="bg-indigo-700 rounded-lg shadow-lg text-white hidden transform transition-all duration-300 translate-y-16 p-4">
             <div class="flex justify-between items-start"><div class="flex-1"><h3 class="font-bold">🔔 Lembretes para Hoje!</h3><p id="reminder-message" class="text-sm mt-1 whitespace-pre-wrap"></p></div><button id="close-reminder-toast" class="ml-2 text-gray-400 hover:text-white text-2xl leading-none">&times;</button></div>
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js"; 
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, updateDoc, arrayUnion, arrayRemove, getDoc, addDoc, deleteDoc, query, where, orderBy, serverTimestamp, getDocs } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAsFvuMeDRo0jNRgIwq0NGoG2-XkP7Eed4",
+            authDomain: "calendario3-3.firebaseapp.com",
+            projectId: "calendario3-3",
+            storageBucket: "calendario3-3.firebasestorage.app",
+            messagingSenderId: "672943308005",
+            appId: "1:672943308005:web:99f1879c9ea90d382c680c"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app); 
+        const db = getFirestore(app); 
+
         document.addEventListener('DOMContentLoaded', async () => {
+            // --- ELEMENTOS DO DOM ---
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+            const teamSearchInput = document.getElementById('team-search');
+            const autocompleteResults = document.getElementById('autocomplete-results');
+            const sportFiltersContainer = document.getElementById('sport-filters');
+            const leagueFiltersContainer = document.getElementById('league-filters');
+            const leagueSelect = document.getElementById('league-select');
+            const hotGamesToggle = document.getElementById('hot-games-toggle');
+            const prevMonthBtn = document.getElementById('prev-month');
+            const nextMonthBtn = document.getElementById('next-month'); 
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const detailsPanel = document.getElementById('day-details-panel');
+            const detailsTitle = document.getElementById('details-title');
+            const detailsContent = document.getElementById('details-content');
+            const closeDetailsBtn = document.getElementById('close-details');
+            const nextEventPrompt = document.getElementById('next-event-prompt');
+            const saveStatus = document.getElementById('save-status');
+            const viewModeSelect = document.getElementById('view-mode');
+            const loginButton = document.getElementById('login-button');
+            const logoutButton = document.getElementById('logout-button');
+            const userInfo = document.getElementById('user-info');
+            const userPhoto = document.getElementById('user-photo');
+            const userName = document.getElementById('user-name');
+            const authStatus = document.getElementById('auth-status');
+
             // --- CONFIGURAÇÃO ---
             const API_KEY = '373862';
             const CACHE_DURATION_MINUTES = 15;
@@ -192,29 +255,12 @@
                 'Brazil', 'Argentina', 'France', 'Germany', 'Spain', 'England', 'Portugal', 'Italy', 'Netherlands', 'Uruguay', 'Belgium', 'Croatia'
             ];
 
-            const prevMonthBtn = document.getElementById('prev-month');
-            const nextMonthBtn = document.getElementById('next-month');
-            const loadingIndicator = document.getElementById('loading-indicator');
-            const detailsPanel = document.getElementById('day-details-panel');
-            const detailsTitle = document.getElementById('details-title');
-            const detailsContent = document.getElementById('details-content');
-            const closeDetailsBtn = document.getElementById('close-details');
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggleBtn = document.getElementById('sidebar-toggle');
-            const nextEventPrompt = document.getElementById('next-event-prompt');
-            const saveStatus = document.getElementById('save-status');
-            const viewModeSelect = document.getElementById('view-mode');
-            const teamSearchInput = document.getElementById('team-search');
-            const autocompleteResults = document.getElementById('autocomplete-results');
-            const sportFiltersContainer = document.getElementById('sport-filters');
-            const leagueFiltersContainer = document.getElementById('league-filters');
-            const leagueSelect = document.getElementById('league-select');
-            const hotGamesToggle = document.getElementById('hot-games-toggle');
-
+            // --- ESTADO DA APLICAÇÃO ---
             let currentDate = new Date();
             let allEventsData = { upcoming: null, past: null };
             let eventPeriod = 'upcoming';
-            let savedReminders = JSON.parse(localStorage.getItem('eventReminders')) || [];
+            let savedReminders = [];
+            let currentUser = null;
 
             const getCache = key => {
                 const itemStr = localStorage.getItem(key);
@@ -271,7 +317,7 @@
             }
 
             function checkAndNotify() {
-                // Notificação de Jogos Salvos para Hoje
+                // Notificação de Lembretes para Hoje
                 const todayStr = new Date().toISOString().split('T')[0];
                 const todaysReminders = savedReminders
                     .map(id => (allEventsData.upcoming || []).find(e => e.idEvent === id))
@@ -283,9 +329,11 @@
                     showToast('reminder-toast', message.trim());
                 }
                 
-                // Notificação de Jogos Quentes da Semana
-                const today = new Date(); today.setHours(0, 0, 0, 0);
-                const nextWeek = new Date(); nextWeek.setDate(today.getDate() + 7);
+                // Notificação de Jogos Quentes dos Próximos 7 Dias
+                const today = new Date(); 
+                today.setHours(0, 0, 0, 0);
+                const nextWeek = new Date(today);
+                nextWeek.setDate(today.getDate() + 7);
 
                 const upcomingHotGames = (allEventsData.upcoming || [])
                     .filter(e => {
@@ -295,9 +343,22 @@
                     .sort((a,b) => new Date(a.dateEvent) - new Date(b.dateEvent));
                 
                 if (upcomingHotGames.length > 0) {
-                    let message = "Próximos Jogos Quentes:\n";
-                    upcomingHotGames.slice(0, 3).forEach(event => { message += `- ${event.strEvent}\n`; });
-                    setTimeout(() => showToast('welcome-toast', message.trim()), 1500); // Atraso para não sobrepor
+                    const welcomeToastTitle = document.querySelector('#welcome-toast h3');
+                    if (welcomeToastTitle) {
+                        welcomeToastTitle.textContent = '🔥 Próximos Jogos Quentes!';
+                    }
+                    
+                    let message = "Confira os jogos quentes da semana:\n";
+                    upcomingHotGames.slice(0, 5).forEach(event => {
+                        const eventDate = new Date(event.dateEvent + 'T00:00:00');
+                        const dateString = eventDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+                        message += `- ${event.strEvent} (${dateString})\n`;
+                    });
+                    if (upcomingHotGames.length > 5) {
+                        message += `\n... e mais ${upcomingHotGames.length - 5} jogos.`;
+                    }
+
+                    setTimeout(() => showToast('welcome-toast', message.trim()), 1500);
                 }
             }
 
@@ -322,7 +383,6 @@
                     const fetchedEvents = results.flatMap(result => result.events || []);
                     allEventsData[eventPeriod] = fetchedEvents;
                     setCache(cacheKey, fetchedEvents);
-                    saveToSheets(fetchedEvents);
                 }
                 
                 loadingIndicator.style.display = 'none';
@@ -331,34 +391,23 @@
             }
             
             async function loadParticles(colors = ["#ffffff"]) {
-                await tsParticles.load("calendar-background-particles", { // Target the new div
+                await tsParticles.load("calendar-background-particles", {
                     fpsLimit: 60,
                     particles: {
-                        number: { value: 30, density: { enable: true, value_area: 400 } }, // Reduced number and density
+                        number: { value: 30, density: { enable: true, value_area: 400 } },
                         color: { value: colors },
                         shape: { type: "circle" },
-                        opacity: { value: 0.3, random: true }, // Slightly less opaque
-                        size: { value: 2, random: { enable: true, minimumValue: 1 } }, // Smaller particles
+                        opacity: { value: 0.3, random: true },
+                        size: { value: 2, random: { enable: true, minimumValue: 1 } },
                         move: {
-                            enable: true,
-                            speed: 0.5, // Slower movement
-                            direction: "none",
-                            random: true,
-                            straight: false,
-                            out_mode: "bounce", // Keep them within the container
-                            bounce: true
+                            enable: true, speed: 0.5, direction: "none", random: true,
+                            straight: false, out_mode: "bounce", bounce: true
                         },
-                        links: { enable: true, distance: 100, color: "#ffffff", opacity: 0.1, width: 1 } // Shorter links, less opaque
+                        links: { enable: true, distance: 100, color: "#ffffff", opacity: 0.1, width: 1 }
                     },
                     interactivity: {
-                        events: {
-                            onHover: { enable: true, mode: "grab" },
-                            onClick: { enable: true, mode: "push" }
-                        },
-                        modes: {
-                            grab: { distance: 100, links: { opacity: 0.2 } }, // Reduced grab distance
-                            push: { quantity: 1 } // Push fewer particles
-                        }
+                        events: { onHover: { enable: true, mode: "grab" }, onClick: { enable: true, mode: "push" } },
+                        modes: { grab: { distance: 100, links: { opacity: 0.2 } }, push: { quantity: 1 } }
                     },
                     detectRetina: true
                 });
@@ -518,12 +567,134 @@
                 }
             }
             
+            // Firebase Related Functions
+            async function saveUserReminder(userId, eventId) {
+                try {
+                    const userRef = doc(db, 'users', userId);
+                    await setDoc(userRef, { reminders: arrayUnion(eventId) }, { merge: true }); 
+                    console.log('Reminder saved to Firestore!');
+                } catch (error) {
+                    console.error('Error saving reminder to Firestore:', error);
+                }
+            }
+
+            async function removeUserReminder(userId, eventId) {
+                try {
+                    const userRef = doc(db, 'users', userId);
+                    await updateDoc(userRef, { reminders: arrayRemove(eventId) });
+                    console.log('Reminder removed from Firestore!');
+                } catch (error) {
+                    console.error('Error removing reminder from Firestore:', error);
+                }
+            }
+
+            async function loadUserReminders(userId) {
+                try {
+                    const userDocRef = doc(db, 'users', userId);
+                    const userDoc = await getDoc(userDocRef);
+                    if (userDoc.exists()) {
+                        savedReminders = userDoc.data().reminders || [];
+                        console.log('Reminders loaded from Firestore:', savedReminders);
+                    } else {
+                        savedReminders = [];
+                        console.log('No user document found, initializing empty reminders.');
+                    }
+                    applyFiltersAndRender();
+                } catch (error) {
+                    console.error('Error loading reminders from Firestore:', error);
+                    savedReminders = [];
+                }
+            }
+
+            async function saveUserComment(userId, userName, userPhotoUrl, eventId, commentText) {
+                try {
+                    await addDoc(collection(db, 'comments'), {
+                        userId: userId,
+                        userName: userName,
+                        userPhoto: userPhotoUrl,
+                        eventId: eventId,
+                        comment: commentText,
+                        timestamp: serverTimestamp()
+                    });
+                    console.log('Comment saved!');
+                    const textareaForEvent = document.getElementById(`comment-text-${eventId}`);
+                    if (textareaForEvent) textareaForEvent.value = '';
+                    loadCommentsForEvent(eventId, document.getElementById(`comments-list-${eventId}`), document.getElementById(`no-comments-message-${eventId}`));
+                } catch (error) {
+                    console.error('Error saving comment:', error);
+                    alert('Erro ao salvar comentário. Tente novamente.');
+                }
+            }
+
+            async function deleteUserComment(commentId, eventId) {
+                try {
+                    const commentRef = doc(db, 'comments', commentId);
+                    await deleteDoc(commentRef);
+                    console.log('Comment deleted!');
+                    loadCommentsForEvent(eventId, document.getElementById(`comments-list-${eventId}`), document.getElementById(`no-comments-message-${eventId}`));
+                } catch (error) {
+                    console.error('Error deleting comment:', error);
+                    alert('Erro ao excluir comentário. Tente novamente ou verifique se você é o autor.');
+                }
+            }
+
+            async function loadCommentsForEvent(eventId, commentsListElement, noCommentsMessageElement) {
+                commentsListElement.innerHTML = ''; 
+                noCommentsMessageElement.classList.add('hidden');
+                try {
+                    const commentsCollectionRef = collection(db, 'comments');
+                    const q = query(commentsCollectionRef, where('eventId', '==', eventId), orderBy('timestamp', 'asc'));
+                    
+                    const snapshot = await getDocs(q);
+                    
+                    if (snapshot.empty) {
+                        noCommentsMessageElement.classList.remove('hidden');
+                        return;
+                    }
+
+                    snapshot.docs.forEach(docItem => {
+                        const commentData = docItem.data();
+                        const commentHtml = `
+                            <div class="bg-gray-700 p-3 rounded-lg flex items-start space-x-3 relative">
+                                <img src="${commentData.userPhoto || 'https://via.placeholder.com/24/374151/FFFFFF?text=?'}" class="w-6 h-6 rounded-full" alt="User Photo">
+                                <div>
+                                    <p class="text-sm font-semibold text-white">${commentData.userName}</p>
+                                    <p class="text-xs text-gray-400">${commentData.comment}</p>
+                                    <p class="text-xs text-gray-500 mt-1">${commentData.timestamp ? new Date(commentData.timestamp.toDate()).toLocaleString() : 'Data desconhecida'}</p>
+                                </div>
+                                ${currentUser && currentUser.uid === commentData.userId ? 
+                                    `<button class="absolute top-2 right-2 text-red-400 hover:text-red-600 text-sm font-bold" data-comment-id="${docItem.id}" data-event-id="${eventId}">Excluir</button>` : ''
+                                }
+                            </div>
+                        `;
+                        commentsListElement.insertAdjacentHTML('beforeend', commentHtml);
+                    });
+
+                    commentsListElement.querySelectorAll('button[data-comment-id]').forEach(button => {
+                        button.addEventListener('click', (e) => {
+                            const commentId = e.target.dataset.commentId;
+                            const eventId = e.target.dataset.eventId;
+                            if (confirm('Tem certeza que deseja excluir este comentário?')) {
+                                deleteUserComment(commentId, eventId);
+                            }
+                        });
+                    });
+
+                } catch (error) {
+                    console.error('Error loading comments:', error);
+                    commentsListElement.innerHTML = `<p class="text-red-400">Erro ao carregar comentários.</p>`;
+                }
+            }
+
+
             function toggleReminder(eventId) {
                 const reminderIndex = savedReminders.indexOf(eventId);
                 if (reminderIndex > -1) {
                     savedReminders.splice(reminderIndex, 1);
+                    if (currentUser) { removeUserReminder(currentUser.uid, eventId); }
                 } else {
                     savedReminders.push(eventId);
+                    if (currentUser) { saveUserReminder(currentUser.uid, eventId); }
                 }
                 localStorage.setItem('eventReminders', JSON.stringify(savedReminders));
                 const openDate = detailsPanel.dataset.date;
@@ -538,7 +709,8 @@
                 detailsTitle.textContent = `Eventos de ${date.toLocaleDateString('pt-BR', { dateStyle: 'full' })}`;
                 const eventsOnDay = events.filter(e => e.dateEvent === dateStr);
                 
-                let contentHtml = '';
+                detailsContent.innerHTML = '';
+                
                 if (eventsOnDay.length > 0) {
                     eventsOnDay.forEach(event => {
                         const sportName = getSportByLeagueId(event.idLeague);
@@ -551,28 +723,96 @@
                         const timeDisplay = (event.strTime && event.strTime !== "00:00:00") ? event.strTime.substring(0, 5) : 'A definir';
                         const hotGameClass = isTopEvent ? 'border-2 border-amber-400' : '';
 
-                        contentHtml += `
+                        const eventCardHtml = `
                             <div class="relative bg-gray-700 p-4 rounded-lg overflow-hidden ${hotGameClass}" style="${bgImageStyle} background-size: cover; background-position: center;">
-                                <div class="absolute top-2 right-2 flex items-center gap-x-2 z-10">
-                                    ${isTopEvent ? `<div class="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">🔥</div>` : ''}
-                                    <button class="reminder-bell ${isReminderSet ? 'active' : ''}" data-event-id="${event.idEvent}" title="Ativar/Desativar lembrete">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22a2.98 2.98 0 002.818-2H9.182A2.98 2.98 0 0012 22zm7-7v-5.273A6.994 6.994 0 0013 2.127V2a1 1 0 00-2 0v.127A6.994 6.994 0 005 9.727V15l-2 2v1h18v-1l-2-2z"/></svg>
-                                    </button>
-                                </div>
                                 <div class="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm"></div>
                                 <div class="relative z-10">
                                     <p class="text-sm text-indigo-400 font-semibold">${event.strLeague}</p>
                                     <h3 class="text-lg font-bold mt-1 text-white">${event.strEvent}</h3>
                                     <p class="text-sm text-gray-300 mt-2">Horário: ${timeDisplay}</p>
                                     <p class="text-sm text-gray-300">Local: ${event.strVenue || 'A definir'}</p>
+                                    <div class="absolute top-2 right-2 flex items-center gap-x-2 z-10">
+                                        ${isTopEvent ? `<div class="bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">🔥</div>` : ''}
+                                        <button class="reminder-bell ${isReminderSet ? 'active' : ''}" data-event-id="${event.idEvent}" title="Ativar/Desativar lembrete">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22a2.98 2.98 0 002.818-2H9.182A2.98 2.98 0 0012 22zm7-7v-5.273A6.994 6.994 0 0013 2.127V2a1 1 0 00-2 0v.127A6.994 6.994 0 005 9.727V15l-2 2v1h18v-1l-2-2z"/></svg>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>`;
+                        
+                        const commentSectionForEvent = document.createElement('div');
+                        commentSectionForEvent.className = 'mt-4 pt-4 border-t border-gray-700';
+                        commentSectionForEvent.innerHTML = `
+                            <div class="comments-toggle-button bg-gray-600 p-3 rounded-lg cursor-pointer flex justify-between items-center transition hover:bg-gray-500">
+                                <span class="font-semibold text-white">Comentários do Jogo</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="comments-collapsible-content mt-2">
+                                <div id="comments-list-${event.idEvent}" class="space-y-3 mb-4 max-h-48 overflow-y-auto">
+                                    <p class="text-gray-400 text-sm" id="no-comments-message-${event.idEvent}">Nenhum comentário ainda.</p>
+                                </div>
+                                <div id="comment-input-area-${event.idEvent}" class="space-y-2">
+                                    <textarea id="comment-text-${event.idEvent}" class="w-full bg-gray-700 border-gray-600 rounded-lg p-3 text-sm text-white placeholder-gray-400 focus:ring-indigo-500 focus:border-indigo-500" rows="3" placeholder="Escreva seu comentário..."></textarea>
+                                    <button id="save-comment-button-${event.idEvent}" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg">
+                                        Salvar Comentário
+                                    </button>
+                                </div>
+                                <p id="comment-auth-message-${event.idEvent}" class="text-red-400 text-sm mt-2 hidden">Faça login para comentar.</p>
+                            </div>
+                        `;
+
+                        const wrapperDiv = document.createElement('div');
+                        wrapperDiv.className = 'mb-8';
+                        wrapperDiv.innerHTML = eventCardHtml;
+                        wrapperDiv.appendChild(commentSectionForEvent);
+                        detailsContent.appendChild(wrapperDiv);
+
+                        const commentsListForEvent = document.getElementById(`comments-list-${event.idEvent}`);
+                        const noCommentsMessageForEvent = document.getElementById(`no-comments-message-${event.idEvent}`);
+                        const commentInputAreaForEvent = document.getElementById(`comment-input-area-${event.idEvent}`);
+                        const commentTextareaForEvent = document.getElementById(`comment-text-${event.idEvent}`);
+                        const saveCommentButtonForEvent = document.getElementById(`save-comment-button-${event.idEvent}`);
+                        const commentAuthMessageForEvent = document.getElementById(`comment-auth-message-${event.idEvent}`);
+                        
+                        const commentsCollapsibleContent = commentSectionForEvent.querySelector('.comments-collapsible-content');
+                        const commentsToggleButton = commentSectionForEvent.querySelector('.comments-toggle-button');
+                        const toggleIcon = commentsToggleButton.querySelector('svg');
+
+                        commentsToggleButton.addEventListener('click', () => {
+                            commentsCollapsibleContent.classList.toggle('open');
+                            toggleIcon.classList.toggle('rotate-180');
+                        });
+
+                        if (currentUser) {
+                            commentInputAreaForEvent.classList.remove('hidden');
+                            commentAuthMessageForEvent.classList.add('hidden');
+                            loadCommentsForEvent(event.idEvent, commentsListForEvent, noCommentsMessageForEvent);
+                        } else {
+                            commentInputAreaForEvent.classList.add('hidden');
+                            commentAuthMessageForEvent.classList.remove('hidden');
+                            commentsListForEvent.innerHTML = '';
+                            noCommentsMessageForEvent.classList.remove('hidden');
+                        }
+
+                        saveCommentButtonForEvent.addEventListener('click', () => {
+                            if (!currentUser) {
+                                alert('Você precisa estar logado para salvar comentários.');
+                                return;
+                            }
+                            const commentText = commentTextareaForEvent.value.trim();
+                            if (commentText.length === 0) {
+                                alert('O comentário não pode estar vazio.');
+                                return;
+                            }
+                            saveUserComment(currentUser.uid, currentUser.displayName, currentUser.photoURL, event.idEvent, commentText);
+                        });
                     });
                 } else {
-                    contentHtml = '<p>Nenhum evento para este dia com os filtros atuais.</p>';
+                    detailsContent.innerHTML = '<p>Nenhum evento para este dia com os filtros atuais.</p>';
                 }
                 
-                detailsContent.innerHTML = contentHtml;
                 detailsPanel.classList.add('open');
 
                 detailsContent.querySelectorAll('.reminder-bell').forEach(bell => {
@@ -594,7 +834,54 @@
                 return null;
             }
 
-            // --- INICIALIZAÇÃO ---
+            // --- AUTENTICAÇÃO FIREBASE ---
+            loginButton.addEventListener('click', async () => {
+                const provider = new GoogleAuthProvider();
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    console.error("Erro no login:", error);
+                    authStatus.textContent = "Erro no login.";
+                }
+            });
+
+            logoutButton.addEventListener('click', async () => {
+                try {
+                    await signOut(auth);
+                } catch (error) {
+                    console.error("Erro ao sair:", error);
+                    authStatus.textContent = "Erro ao sair.";
+                }
+            });
+
+            onAuthStateChanged(auth, async (user) => {
+                currentUser = user;
+                if (user) {
+                    userInfo.classList.remove('hidden');
+                    loginButton.classList.add('hidden');
+                    logoutButton.classList.remove('hidden');
+                    userPhoto.src = user.photoURL || 'https://via.placeholder.com/24/374151/FFFFFF?text=?';
+                    userName.textContent = user.displayName || user.email;
+                    authStatus.textContent = "Logado como: " + (user.displayName || user.email);
+                    await loadUserReminders(user.uid);
+                    
+                    const openDate = detailsPanel.dataset.date;
+                    if (openDate) {
+                        showDayDetails(openDate, allEventsData[eventPeriod]);
+                    }
+                } else {
+                    userInfo.classList.add('hidden');
+                    loginButton.classList.remove('hidden');
+                    logoutButton.classList.add('hidden');
+                    userName.textContent = '';
+                    userPhoto.src = '';
+                    authStatus.textContent = "Não logado.";
+                    savedReminders = [];
+                    applyFiltersAndRender();
+                }
+            });
+
+            // --- INICIALIZAÇÃO GERAL ---
             document.querySelectorAll('input[name="event-period"]').forEach(radio => {
                 radio.addEventListener('change', (e) => { 
                     eventPeriod = e.target.value; 
@@ -649,9 +936,10 @@
             });
 
             populateFilters();
-            loadParticles(); // Agora carregará no novo contêiner
+            loadParticles();
             await fetchAllEventsForPeriod();
         });
     </script>
 </body>
 </html>
+�
