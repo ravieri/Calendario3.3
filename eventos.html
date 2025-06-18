@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendário de Eventos</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- tsParticles for background effects -->
+    <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #111827; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+        #sidebar { transition: transform 0.3s ease-in-out, width 0.3s ease-in-out; z-index: 40; }
+        #sidebar.collapsed { transform: translateX(-100%); width: 0; padding: 0; }
+
+        /* Novo estilo para o contêiner de partículas do calendário */
+        #calendar-background-particles {
+            position: absolute;
+            top: 50%; /* Centraliza verticalmente */
+            left: 50%; /* Centraliza horizontalmente */
+            transform: translate(-50%, -50%); /* Ajusta para centralização verdadeira */
+            width: 80%; /* Largura ajustada para o notebook */
+            height: 80%; /* Altura ajustada para o notebook */
+            max-width: 1000px; /* Limita a largura máxima */
+            max-height: 600px; /* Limita a altura máxima */
+            z-index: 0; /* Garante que fique atrás do conteúdo do calendário */
+            border-radius: 50%; /* Opcional: para dar um formato circular ao contêiner de partículas */
+        }
+        
+        .calendar-day { transition: all 0.2s ease-in-out; min-height: 100px; } /* Ajustado min-height */
+        .calendar-day.has-events { cursor: pointer; background-color: #1f2937; }
+        .calendar-day.has-events:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(79, 70, 229, 0.5); z-index: 10; position: relative; }
+        .calendar-day.today { border: 2px solid #4f46e5; }
+        
+        .event-trail { background-color: rgba(255, 255, 255, 0.1); }
+
+        #day-details-panel { transition: transform 0.3s ease-in-out; transform: translateX(100%); z-index: 50; }
+        #day-details-panel.open { transform: translateX(0); }
+
+        /* Estilos do Modal de Notificação */
+        #notification-modal-overlay { z-index: 99; }
+        #notification-modal-overlay.hidden { display: none; }
+        #notification-modal { transition: opacity 0.3s ease, transform 0.3s ease; }
+        .countdown-pulse { animation: pulse-light 2s infinite; }
+        @keyframes pulse-light { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+        /* Estilo do sino de lembrete no painel de detalhes do dia */
+        .reminder-bell { color: #4b5563; /* gray-600 */ }
+        .reminder-bell.active { color: #facc15; /* yellow-400 */ }
+
+        /* Estilo para o nome do evento no modal (para lembretes) */
+        .event-name-modal.is-reminder { color: #facc15; } /* Cor amarela para o nome do evento quando é lembrete */
+    </style>
+</head>
+<body class="text-gray-200">
+
+    <!-- Removido: <div id="tsparticles"></div> -->
+
+    <div class="flex h-screen overflow-hidden">
+        <aside id="sidebar" class="w-72 bg-gray-900 p-6 flex flex-col space-y-6 overflow-y-auto">
+            <h2 class="text-2xl font-bold text-white whitespace-nowrap">Navegação</h2>
+            <nav>
+                <ul>
+                    <li><a href="partidas.html" class="block py-2 px-4 rounded-lg hover:bg-gray-700">Calendário de Partidas</a></li>
+                    <li><a href="eventos.html" class="block py-2 px-4 rounded-lg bg-indigo-600 text-white">Eventos</a></li>
+                </ul>
+            </nav>
+            <hr class="border-gray-700">
+            
+            <div id="filter-section">
+                <h2 class="text-2xl font-bold text-white whitespace-nowrap mb-4">Filtros</h2>
+                <div id="category-filters" class="space-y-2">
+                    <!-- Botões de rádio para filtros serão inseridos aqui -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- ÁREA PRINCIPAL -->
+        <main class="flex-1 p-8 overflow-y-auto relative">
+            <button id="sidebar-toggle" class="absolute top-6 left-6 z-30 p-2 rounded-full bg-gray-800 hover:bg-gray-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+
+            <div class="flex items-center justify-center mb-6">
+                <h1 class="text-3xl font-bold text-white text-center">Calendário de Eventos</h1>
+            </div>
+            
+            <!-- Novo contêiner para as partículas ao redor do calendário -->
+            <div id="calendar-background-particles"></div>
+
+            <div id="active-trail-info" class="max-w-3xl mx-auto mb-6 p-3 rounded-lg bg-gray-800 border border-gray-700 items-center justify-between hidden">
+                <div class="flex items-center gap-4">
+                    <span class="text-sm font-semibold text-gray-400">SELECIONADO:</span>
+                    <div class="flex flex-col">
+                        <span id="trail-event-name" class="font-bold text-white"></span>
+                        <span id="trail-event-category" class="text-xs text-indigo-400"></span>
+                        <span id="trail-event-dates" class="text-xs text-gray-400 mt-1"></span>
+                    </div>
+                </div>
+                <button id="clear-trail-btn" class="p-2 rounded-full hover:bg-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div id="calendars-container" class="relative flex justify-center items-start gap-8">
+                <!-- Botões de navegação reposicionados dentro do calendars-container -->
+                <button id="prev-month" class="absolute top-0 left-0 p-2 rounded-full hover:bg-gray-700 z-10 mt-4 ml-4 text-white">&lt;</button>
+                <button id="next-month" class="absolute top-0 right-0 p-2 rounded-full hover:bg-gray-700 z-10 mt-4 mr-4 text-white">&gt;</button>
+
+                 <div id="next-event-prompt" class="absolute inset-0 flex-col items-center justify-center bg-black bg-opacity-75 hidden z-20 rounded-lg p-8 text-center">
+                    <p id="prompt-title" class="text-2xl font-bold text-white mb-4"></p>
+                    <button id="jump-to-event-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg flex items-center transition-transform transform hover:scale-105">
+                        <span id="jump-text"></span><span id="jump-date" class="ml-2 font-black"></span>
+                    </button>
+                </div>
+                <div id="calendar-1" class="w-full max-w-xl"><h2 id="month-year-header-1" class="text-2xl font-bold text-center mb-4"></h2><div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div><div id="calendar-grid-1" class="grid grid-cols-7 gap-2"></div></div>
+                <div class="h-auto self-stretch border-l border-gray-700"></div>
+                <div id="calendar-2" class="w-full max-w-xl"><h2 id="month-year-header-2" class="text-2xl font-bold text-center mb-4"></h2><div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div><div id="calendar-grid-2" class="grid grid-cols-7 gap-2"></div></div>
+            </div>
+        </main>
+    </div>
+    
+    <div id="day-details-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 shadow-lg p-6 overflow-y-auto">
+        <div class="flex justify-between items-center mb-6">
+            <h2 id="details-title" class="text-2xl font-bold text-white">Eventos do Dia</h2>
+            <button id="close-details" class="p-2 rounded-full hover:bg-gray-700 text-2xl leading-none">&times;</button>
+        </div>
+        <div id="details-content" class="space-y-4"></div>
+    </div>
+    
+    <!-- Modal de Notificação de Urgência (para eventos próximos) -->
+    <div id="notification-modal-overlay" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden">
+        <div id="notification-modal" class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg p-8 text-white scale-95 opacity-0">
+            <h2 class="text-3xl font-bold text-center mb-2">🔥 Fique de Olho!</h2>
+            <p class="text-center text-gray-400 mb-6">Estes eventos importantes estão começando ou terminando em breve.</p>
+            <!-- Mensagem de ação do lembrete no modal -->
+            <div id="modal-reminder-action-message" class="text-center text-green-400 mb-4 hidden"></div>
+            <div id="notification-content" class="space-y-4 max-h-80 overflow-y-auto pr-2">
+                <!-- Conteúdo dinâmico aqui -->
+            </div>
+            <button id="close-modal-btn" class="w-full mt-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg">Explorar Calendário</button>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => { // Changed to async
+            // --- ELEMENTOS DO DOM ---
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+            const categoryFiltersContainer = document.getElementById('category-filters');
+            const nextEventPrompt = document.getElementById('next-event-prompt');
+            const promptTitleEl = document.getElementById('prompt-title');
+            const jumpToEventBtn = document.getElementById('jump-to-event-btn');
+            const jumpTextEl = document.getElementById('jump-text');
+            const jumpDateEl = document.getElementById('jump-date');
+            const prevMonthBtn = document.getElementById('prev-month');
+            const nextMonthBtn = document.getElementById('next-month');
+            const detailsPanel = document.getElementById('day-details-panel');
+            const detailsTitle = document.getElementById('details-title');
+            const detailsContent = document.getElementById('details-content');
+            const closeDetailsBtn = document.getElementById('close-details');
+            const activeTrailInfoPanel = document.getElementById('active-trail-info');
+            const trailEventNameEl = document.getElementById('trail-event-name');
+            const trailEventCategoryEl = document.getElementById('trail-event-category');
+            const trailEventDatesEl = document.getElementById('trail-event-dates');
+            const clearTrailBtn = document.getElementById('clear-trail-btn');
+            const notificationModalOverlay = document.getElementById('notification-modal-overlay');
+            const notificationModal = document.getElementById('notification-modal');
+            const notificationContent = document.getElementById('notification-content');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const modalReminderActionMessage = document.getElementById('modal-reminder-action-message');
+
+
+            // --- DADOS E CONFIGURAÇÕES ---
+            const sportConfigs = {
+                'Futebol': { particleColor: '#22c55e' }, 'Basquete': { particleColor: '#f97316' }, 'Tênis': { particleColor: '#eab308' }, 'Outros Esportes': { particleColor: '#0ea5e9' }, 'eSports': { particleColor: '#a855f7' }
+            };
+
+            // Fetch data from external JSON file
+            let allEventsData = [];
+            try {
+                const response = await fetch('eventos.json'); // Path to your JSON file
+                const data = await response.json();
+                allEventsData = data.eventos;
+            } catch (error) {
+                console.error('Erro ao carregar dados dos eventos:', error);
+                // Fallback to empty array or a default static data if needed
+            }
+            
+            // --- ESTADO DA APLICAÇÃO ---
+            let currentDate = new Date();
+            let allEvents = allEventsData; // Use fetched data
+            // Carrega lembretes salvos do localStorage
+            let savedReminders = JSON.parse(localStorage.getItem('eventReminders')) || []; 
+            let activeTrail = null; 
+            let countdownIntervals = [];
+
+            // --- FUNÇÕES ---
+
+            // Gera um ID único para cada evento com base no nome, data de início e data de fim
+            const getEventUniqueId = (event) => `${event.nome}_${event.data_inicio}_${event.data_fim}`;
+
+            const parseDate = (str) => {
+                const [year, month, day] = str.split('-').map(Number);
+                return new Date(Date.UTC(year, month - 1, day));
+            };
+
+            const formatDisplayDate = (dateStr) => {
+                const date = parseDate(dateStr);
+                const day = String(date.getUTCDate()).padStart(2, '0');
+                const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                const year = date.getUTCFullYear();
+                return `${day}/${month}/${year}`;
+            };
+            
+            async function loadParticles(colors = ["#ffffff"]) {
+                await tsParticles.load("calendar-background-particles", { // Target the new div
+                    fpsLimit: 60,
+                    particles: {
+                        number: { value: 30, density: { enable: true, value_area: 400 } }, // Reduced number and density
+                        color: { value: colors },
+                        shape: { type: "circle" },
+                        opacity: { value: 0.3, random: true }, // Slightly less opaque
+                        size: { value: 2, random: { enable: true, minimumValue: 1 } }, // Smaller particles
+                        move: {
+                            enable: true,
+                            speed: 0.5, // Slower movement
+                            direction: "none",
+                            random: true,
+                            straight: false,
+                            out_mode: "bounce", // Keep them within the container
+                            bounce: true
+                        },
+                        links: { enable: true, distance: 100, color: "#ffffff", opacity: 0.1, width: 1 } // Shorter links, less opaque
+                    },
+                    interactivity: {
+                        events: {
+                            onHover: { enable: true, mode: "grab" },
+                            onClick: { enable: true, mode: "push" }
+                        },
+                        modes: {
+                            grab: { distance: 100, links: { opacity: 0.2 } }, // Reduced grab distance
+                            push: { quantity: 1 } // Push fewer particles
+                        }
+                    },
+                    detectRetina: true
+                });
+            }
+
+            const clearActiveTrail = () => {
+                if (!activeTrail) return;
+                
+                document.querySelectorAll('.calendar-day').forEach(day => {
+                    day.classList.remove(...activeTrail.trailClasses);
+                });
+                
+                activeTrail = null;
+                activeTrailInfoPanel.classList.add('hidden');
+                activeTrailInfoPanel.classList.remove('flex');
+            };
+
+            const drawActiveTrailOnDOM = () => {
+                if (!activeTrail) return;
+
+                const start = parseDate(activeTrail.start);
+                const end = parseDate(activeTrail.end);
+                if (isNaN(start) || isNaN(end)) return;
+
+                let currentDay = new Date(start);
+                while (currentDay <= end) {
+                    const dateStr = `${currentDay.getUTCFullYear()}-${String(currentDay.getUTCMonth() + 1).padStart(2, '0')}-${String(currentDay.getUTCDate()).padStart(2, '0')}`;
+                    const dayEl = document.querySelector(`[data-date='${dateStr}']`);
+                    if (dayEl) {
+                        dayEl.classList.add(...activeTrail.trailClasses);
+                    }
+                    currentDay.setUTCDate(currentDay.getUTCDate() + 1);
+                }
+                
+                trailEventNameEl.textContent = activeTrail.name;
+                trailEventCategoryEl.textContent = activeTrail.category;
+                trailEventDatesEl.textContent = `${formatDisplayDate(activeTrail.start)} - ${formatDisplayDate(activeTrail.end)}`;
+                activeTrailInfoPanel.classList.remove('hidden');
+                activeTrailInfoPanel.classList.add('flex');
+            };
+            
+            const renderSingleCalendar = (gridId, headerId, date, events) => {
+                const calendarGrid = document.getElementById(gridId);
+                const monthYearHeader = document.getElementById(headerId);
+
+                calendarGrid.innerHTML = '';
+                monthYearHeader.textContent = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+                
+                const month = date.getMonth();
+                const year = date.getFullYear();
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    calendarGrid.insertAdjacentHTML('beforeend', '<div></div>');
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayEl = document.createElement('div');
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    dayEl.dataset.date = dateStr;
+                    dayEl.className = 'calendar-day border border-gray-700 rounded-lg p-2 flex flex-col';
+                    
+                    const eventsOnDay = events.filter(e => e.data_inicio === dateStr || e.data_fim === dateStr);
+                    const eventsStartingOnDay = events.filter(e => e.data_inicio === dateStr);
+                    const eventsEndingOnDay = events.filter(e => e.data_fim === dateStr && e.data_inicio !== e.data_fim);
+
+                    // Verifica se há algum lembrete para este dia
+                    const hasReminderOnDay = eventsOnDay.some(event => savedReminders.includes(getEventUniqueId(event)));
+                    
+                    dayEl.innerHTML = `<div class="flex justify-between items-center">
+                                         <span class="font-bold">${day}</span>
+                                         <div class="flex space-x-1">
+                                             ${hasReminderOnDay ? '<span class="reminder-indicator-calendar">🔔</span>' : ''}
+                                         </div>
+                                     </div>`;
+                    
+                    if (eventsOnDay.length > 0) {
+                        dayEl.classList.add('has-events');
+                        const indicators = document.createElement('div');
+                        indicators.className = 'flex flex-col space-y-1 overflow-hidden text-xs';
+                        
+                        eventsStartingOnDay.slice(0, 2).forEach(event => {
+                             indicators.innerHTML += `<div class="flex items-center gap-1.5 p-1 rounded-md ${event.cor} bg-opacity-30" title="${event.nome}"><div class="w-2 h-2 rounded-full ${event.cor} flex-shrink-0"></div><span class="truncate text-white font-medium">Início: ${event.nome}</span></div>`;
+                        });
+                        eventsEndingOnDay.slice(0, 2).forEach(event => {
+                             indicators.innerHTML += `<div class="flex items-center gap-1.5 p-1 rounded-md bg-gray-600" title="${event.nome}"><div class="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0"></div><span class="truncate text-gray-300 font-medium">Fim: ${event.nome}</span></div>`;
+                        });
+                        
+                        dayEl.appendChild(indicators);
+                        dayEl.addEventListener('click', () => showDayDetails(dateStr, events));
+                    }
+                    
+                    const today = new Date();
+                    if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                        dayEl.classList.add('today');
+                    }
+                    calendarGrid.appendChild(dayEl);
+                }
+            };
+            
+            const renderTwoMonths = (date, events) => {
+                const month1 = new Date(date);
+                const date2 = new Date(date);
+                date2.setMonth(date2.getMonth() + 1);
+
+                renderSingleCalendar('calendar-grid-1', 'month-year-header-1', month1, events);
+                renderSingleCalendar('calendar-grid-2', 'month-year-header-2', date2, events);
+                drawActiveTrailOnDOM();
+            }
+
+            // Função para alternar o lembrete de um evento
+            const toggleReminder = (eventData) => {
+                const eventUniqueId = getEventUniqueId(eventData);
+                const reminderIndex = savedReminders.indexOf(eventUniqueId);
+                let message = "";
+                if (reminderIndex > -1) {
+                    savedReminders.splice(reminderIndex, 1); // Remove o lembrete
+                    message = `"${eventData.nome}" desmarcado dos lembretes.`;
+                } else {
+                    savedReminders.push(eventUniqueId); // Adiciona o lembrete
+                    message = `"${eventData.nome}" marcado em Meus Lembretes.`;
+                }
+                localStorage.setItem('eventReminders', JSON.stringify(savedReminders)); // Salva no localStorage
+                
+                // Exibe a mensagem de ação no modal
+                modalReminderActionMessage.textContent = message;
+                modalReminderActionMessage.classList.remove('hidden', 'text-green-400', 'text-red-400');
+                modalReminderActionMessage.classList.add(reminderIndex > -1 ? 'text-red-400' : 'text-green-400');
+
+                setTimeout(() => {
+                    modalReminderActionMessage.classList.add('hidden');
+                }, 3000); // Esconde a mensagem após 3 segundos
+
+
+                // Re-renderiza o painel de detalhes para atualizar o estado do sino
+                const openDate = detailsPanel.dataset.date;
+                if (openDate) {
+                    showDayDetails(openDate, allEvents); // Usa allEvents para garantir que todos os eventos sejam considerados para re-renderização
+                }
+                applyFilters(); // Re-aplica filtros para atualizar o calendário
+            };
+
+            const showDayDetails = (dateStr, events) => {
+                detailsPanel.dataset.date = dateStr; // Salva a data atualmente aberta
+                const date = parseDate(dateStr);
+                detailsTitle.textContent = `Eventos de ${date.toLocaleDateString('pt-BR', { timeZone: 'UTC', dateStyle: 'full' })}`;
+                
+                const eventsOnDay = events.filter(e => e.data_inicio === dateStr || e.data_fim === dateStr);
+                
+                let contentHtml = '';
+                if (eventsOnDay.length > 0) {
+                     eventsOnDay.forEach(event => {
+                        let statusTag = '';
+                        if (event.data_inicio === dateStr) {
+                            statusTag = event.data_inicio === event.data_fim ? `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${event.cor} text-white bg-opacity-80">Evento Único</span>` : `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${event.cor} text-white bg-opacity-80">Início do Evento</span>`;
+                        } else if (event.data_fim === dateStr) {
+                            statusTag = `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-gray-200 bg-gray-600">Fim do Evento</span>`;
+                        }
+
+                        // Verifica se o evento está marcado como lembrete
+                        const isReminderSet = savedReminders.includes(getEventUniqueId(event));
+
+                        contentHtml += `
+                            <div class="flex items-center space-x-3 mb-4">
+                                <div class="event-card-clickable flex-1 bg-gray-700 p-4 rounded-lg cursor-pointer transition-colors hover:bg-gray-600" 
+                                    data-name="${event.nome}" data-category="${event.categoria}" data-start="${event.data_inicio}" data-end="${event.data_fim}" data-color="${event.cor}" data-event-unique-id="${getEventUniqueId(event)}">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h3 class="text-lg font-bold text-white flex-1 pr-2">${event.nome}</h3>
+                                        ${statusTag}
+                                    </div>
+                                    <p class="text-sm text-indigo-400 font-semibold">${event.categoria}</p>
+                                    <p class="text-sm text-gray-300 mt-2">${event.descricao}</p>
+                                </div>
+                                <button class="reminder-bell ${isReminderSet ? 'active' : ''} p-2 rounded-full hover:bg-gray-600 flex-shrink-0" data-event-unique-id="${getEventUniqueId(event)}" title="Ativar/Desativar lembrete">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22a2.98 2.98 0 002.818-2H9.182A2.98 2.98 0 0012 22zm7-7v-5.273A6.994 6.994 0 0013 2.127V2a1 1 0 00-2 0v.127A6.994 6.994 0 005 9.727V15l-2 2v1h18v-1l-2-2z"/></svg>
+                                </button>
+                            </div>`;
+                    });
+                } else {
+                    contentHtml = '<p>Nenhum evento para este dia com os filtros atuais.</p>';
+                }
+                
+                detailsContent.innerHTML = contentHtml;
+                detailsPanel.classList.add('open');
+
+                detailsContent.querySelectorAll('.event-card-clickable').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        // Certifica-se de que o clique no sino não ativa o trail
+                        if (e.target.closest('.reminder-bell')) {
+                            return;
+                        }
+                        clearActiveTrail(); 
+                        activeTrail = {
+                            name: card.dataset.name,
+                            category: card.dataset.category,
+                            start: card.dataset.start,
+                            end: card.dataset.end,
+                            trailClasses: ['event-trail', `${card.dataset.color}/30`]
+                        };
+                        drawActiveTrailOnDOM();
+                    });
+                });
+
+                // Adiciona listeners para os botões de sino
+                detailsContent.querySelectorAll('.reminder-bell').forEach(bell => {
+                    bell.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Evita que o clique do sino propague para o card pai
+                        const eventUniqueId = e.currentTarget.dataset.eventUniqueId;
+                        const eventData = allEvents.find(e => getEventUniqueId(e) === eventUniqueId);
+                        if (eventData) {
+                            toggleReminder(eventData);
+                        }
+                    });
+                });
+            };
+
+            const populateFilters = () => {
+                const categories = [...new Set(allEvents.map(e => e.categoria))];
+                let filterHtml = `
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="radio" name="category" value="Todos" class="category-filter bg-gray-700 border-gray-600 rounded-full text-indigo-500 focus:ring-indigo-500" checked>
+                        <span>Todos</span>
+                    </label>`;
+                
+                // Adiciona o filtro de Lembretes
+                filterHtml += `
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="radio" name="category" value="Lembretes" class="category-filter bg-gray-700 border-gray-600 rounded-full text-yellow-400 focus:ring-yellow-400">
+                        <span>Meus Lembretes 🔔</span>
+                    </label>`;
+
+                categories.forEach(cat => {
+                    filterHtml += `
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="category" value="${cat}" class="category-filter bg-gray-700 border-gray-600 rounded-full text-indigo-500 focus:ring-indigo-500">
+                            <span>${cat}</span>
+                        </label>`;
+                });
+                
+                categoryFiltersContainer.innerHTML = filterHtml;
+
+                document.querySelectorAll('.category-filter').forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        clearActiveTrail();
+                        applyFilters();
+                    });
+                });
+            };
+            
+            const checkAndShowJumpPrompt = (filteredEvents) => {
+                nextEventPrompt.classList.add('hidden');
+                
+                const viewStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+                const viewEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0);
+
+                const hasEventsInView = filteredEvents.some(event => {
+                    const eventStart = parseDate(event.data_inicio);
+                    const eventEnd = parseDate(event.data_fim);
+                    return (eventStart <= viewEnd && eventEnd >= viewStart);
+                });
+
+                if (hasEventsInView || filteredEvents.length === 0) return;
+
+                const nextFutureEvent = filteredEvents
+                    .filter(event => parseDate(event.data_inicio) > viewEnd)
+                    .sort((a,b) => parseDate(a.data_inicio) - parseDate(b.data_inicio))[0];
+                
+                if (nextFutureEvent) {
+                    const nextEventDate = parseDate(nextFutureEvent.data_inicio);
+                    promptTitleEl.textContent = 'Nenhum evento na visualização atual';
+                    jumpTextEl.textContent = 'Ir para o próximo evento em';
+                    jumpDateEl.textContent = nextEventDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+                    nextEventPrompt.classList.remove('hidden');
+                    nextEventPrompt.classList.add('flex');
+                    jumpToEventBtn.onclick = () => {
+                        currentDate = new Date(nextEventDate.getUTCFullYear(), nextEventDate.getUTCMonth(), 1);
+                        applyFilters();
+                    };
+                    return;
+                }
+
+                const lastPastEvent = filteredEvents
+                    .filter(event => parseDate(event.data_fim) < viewStart)
+                    .sort((a,b) => parseDate(b.data_fim) - parseDate(a.data_fim))[0];
+
+                if (lastPastEvent) {
+                    const lastEventDate = parseDate(lastPastEvent.data_inicio);
+                    promptTitleEl.textContent = 'Eventos já encerrados';
+                    jumpTextEl.textContent = 'Clique para visualizar o último em';
+                    jumpDateEl.textContent = lastEventDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+                    nextEventPrompt.classList.remove('hidden');
+                    nextEventPrompt.classList.add('flex');
+                    jumpToEventBtn.onclick = () => {
+                        currentDate = new Date(lastEventDate.getUTCFullYear(), lastEventDate.getUTCMonth(), 1);
+                        applyFilters();
+                    };
+                }
+            };
+            
+            const showUrgencyModal = (milestones) => {
+                countdownIntervals.forEach(clearInterval); // Limpa contadores antigos
+                countdownIntervals = [];
+
+                notificationContent.innerHTML = ''; // Limpa conteúdo anterior
+                
+                const groupedByDate = milestones.reduce((acc, m) => {
+                    const dateKey = m.date.toISOString().split('T')[0];
+                    if (!acc[dateKey]) acc[dateKey] = [];
+                    acc[dateKey].push(m);
+                    return acc;
+                }, {});
+
+                for (const dateKey in groupedByDate) {
+                    const items = groupedByDate[dateKey];
+                    const eventDate = items[0].date;
+                    const today = new Date(); today.setHours(0,0,0,0);
+                    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+
+                    let dateLabel;
+                    if (eventDate.getTime() === today.getTime()) dateLabel = 'Hoje';
+                    else if (eventDate.getTime() === tomorrow.getTime()) dateLabel = 'Amanhã';
+                    else dateLabel = formatDisplayDate(dateKey);
+
+                    let groupHtml = `<div class="mb-3"><p class="font-bold text-indigo-400 mb-2">${dateLabel}</p><div class="space-y-2">`;
+                    
+                    items.forEach((item, index) => {
+                        // Encontra o evento completo para verificar se é lembrete
+                        const eventData = allEvents.find(e => getEventUniqueId(e) === item.eventUniqueId);
+                        const isReminderSet = eventData && savedReminders.includes(getEventUniqueId(eventData));
+
+                        const countdownId = `countdown-${dateKey}-${index}`;
+                        groupHtml += `
+                        <div class="bg-gray-700 p-3 rounded-lg text-sm flex items-center justify-between cursor-pointer modal-event-item-clickable" data-event-unique-id="${item.eventUniqueId}">
+                            <div>
+                                <p><span class="font-semibold">${item.type}:</span> <span class="event-name-modal ${isReminderSet ? 'is-reminder' : ''}">${item.name}</span></p>
+                                <p id="${countdownId}" class="text-xs text-amber-400 countdown-pulse mt-1"></p>
+                            </div>
+                            <!-- O sino foi removido daqui conforme solicitado -->
+                        </div>`;
+                    });
+
+                    groupHtml += `</div></div>`;
+                    notificationContent.innerHTML += groupHtml;
+
+                    // Adiciona os contadores
+                    items.forEach((item, index) => {
+                        const countdownEl = document.getElementById(`countdown-${dateKey}-${index}`);
+                        const targetTime = new Date(`${dateKey}T23:59:59`); // Fim do dia do evento
+                        
+                        const updateCountdown = () => {
+                            const diff = targetTime.getTime() - new Date().getTime();
+                            if(diff <= 0) {
+                                countdownEl.textContent = "Finalizado";
+                                return;
+                            }
+                            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+                            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            const s = Math.floor((diff % (1000 * 60)) / 1000);
+                            
+                            countdownEl.textContent = d > 0 ? `${item.type === 'Início' ? 'Começa' : 'Termina'} em ${d}d ${h}h ${m}m` : `Termina em: ${h}h ${m}m ${s}s`;
+                        };
+                        updateCountdown();
+                        if (targetTime.getTime() > new Date().getTime()) {
+                             countdownIntervals.push(setInterval(updateCountdown, 1000));
+                        }
+                    });
+                }
+
+                notificationModalOverlay.classList.remove('hidden');
+                setTimeout(() => notificationModal.classList.remove('scale-95', 'opacity-0'), 10);
+
+                // Adiciona listeners para os itens clicáveis no modal
+                notificationContent.querySelectorAll('.modal-event-item-clickable').forEach(itemEl => {
+                    itemEl.addEventListener('click', () => {
+                        const eventUniqueId = itemEl.dataset.eventUniqueId;
+                        const eventData = allEvents.find(ev => getEventUniqueId(ev) === eventUniqueId);
+                        if (eventData) {
+                            toggleReminder(eventData);
+                            // Atualiza o feedback visual no nome do evento no modal
+                            const eventNameSpan = itemEl.querySelector('.event-name-modal');
+                            if (eventNameSpan) {
+                                if (savedReminders.includes(eventUniqueId)) {
+                                    eventNameSpan.classList.add('is-reminder');
+                                } else {
+                                    eventNameSpan.classList.remove('is-reminder');
+                                }
+                            }
+                        }
+                    });
+                });
+            };
+
+            const checkAndNotifyUpcomingEvents = () => {
+                const now = new Date();
+                const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+                const twoMonthsLater = new Date(today);
+                twoMonthsLater.setUTCMonth(today.getUTCMonth() + 2); 
+
+                const upcomingEventsForModal = []; 
+
+                allEvents.forEach(event => {
+                    const startDate = parseDate(event.data_inicio);
+                    const endDate = parseDate(event.data_fim);
+
+                    if (startDate >= today && startDate <= twoMonthsLater) {
+                        upcomingEventsForModal.push({ date: startDate, type: 'Início', name: event.nome, eventUniqueId: getEventUniqueId(event) });
+                    }
+                    if (endDate >= today && endDate <= twoMonthsLater && event.data_inicio !== event.data_fim) {
+                        upcomingEventsForModal.push({ date: endDate, type: 'Fim', name: event.nome, eventUniqueId: getEventUniqueId(event) });
+                    }
+                });
+                
+                if (upcomingEventsForModal.length > 0) {
+                    const sorted = upcomingEventsForModal.sort((a,b) => a.date - b.date);
+                    showUrgencyModal(sorted);
+                }
+            };
+
+            const applyFilters = () => {
+                const selectedCategory = document.querySelector('.category-filter:checked').value;
+                let filteredEvents = [];
+
+                if (selectedCategory === 'Todos') {
+                    filteredEvents = allEvents;
+                    const allColors = Object.values(sportConfigs).map(c => c.particleColor);
+                    loadParticles(allColors);
+                } else if (selectedCategory === 'Lembretes') {
+                    filteredEvents = allEvents.filter(event => savedReminders.includes(getEventUniqueId(event)));
+                    loadParticles(['#facc15']); // Cor amarela para lembretes
+                } 
+                else {
+                    filteredEvents = allEvents.filter(event => event.categoria === selectedCategory);
+                    const color = sportConfigs[selectedCategory]?.particleColor || '#ffffff';
+                    loadParticles([color]);
+                }
+
+                renderTwoMonths(new Date(currentDate), filteredEvents);
+                checkAndShowJumpPrompt(filteredEvents);
+            };
+
+            const initialize = () => {
+                allEvents = allEventsData; // Ensure allEvents is populated correctly
+                populateFilters();
+                applyFilters();
+                setTimeout(checkAndNotifyUpcomingEvents, 1500); 
+            };
+
+            const closeModal = () => {
+                notificationModal.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => notificationModalOverlay.classList.add('hidden'), 300);
+                countdownIntervals.forEach(clearInterval);
+            };
+
+            // --- EVENT LISTENERS ---
+            sidebarToggleBtn.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
+            closeDetailsBtn.addEventListener('click', () => detailsPanel.classList.remove('open'));
+            clearTrailBtn.addEventListener('click', clearActiveTrail);
+            closeModalBtn.addEventListener('click', closeModal);
+            notificationModalOverlay.addEventListener('click', (e) => { if(e.target === notificationModalOverlay) closeModal(); });
+            
+            // Removido botões de navegação de mês do cabeçalho
+            // prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 2); applyFilters(); });
+            // nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 2); applyFilters(); });
+            
+            // Adicionado listeners para os botões de navegação de mês reposicionados
+            document.getElementById('prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 2); applyFilters(); });
+            document.getElementById('next-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 2); applyFilters(); });
+
+
+            // --- INICIALIZAÇÃO ---
+            initialize();
+        });
+    </script>
+</body>
+</html>
