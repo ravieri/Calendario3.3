@@ -57,6 +57,11 @@
         .calendar-day.has-events { cursor: pointer; background-color: #1f2937; }
         .calendar-day.has-events:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(79, 70, 229, 0.5); z-index: 10; position: relative; }
         .calendar-day.today { border: 2px solid #4f46e5; }
+        .calendar-day.highlight-day {
+            box-shadow: 0 0 20px rgba(52, 211, 153, 0.7);
+            border: 2px solid #34d399;
+            transform: scale(1.05);
+        }
         
         .event-trail { background-color: rgba(255, 255, 255, 0.1); }
 
@@ -99,6 +104,10 @@
         }
          #user-dropdown {
             transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+        }
+        #search-results {
+            max-height: 300px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -149,9 +158,22 @@
                 </div>
             </div>
 
-            <div class="flex items-center justify-center mb-6">
+            <div class="flex items-center justify-center mb-2">
                 <h1 class="text-3xl font-bold text-white text-center">Calendário de Eventos</h1>
             </div>
+             <!-- Search Bar Section -->
+            <div class="max-w-xl mx-auto mb-6 relative z-20">
+                <div class="relative">
+                    <input type="text" id="event-search-input" placeholder="Pesquisar evento por nome..." class="w-full bg-gray-800 border-2 border-gray-700 rounded-lg py-2 px-4 text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                    <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <div id="search-results" class="absolute w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg hidden">
+                    <!-- Search results will be populated here -->
+                </div>
+            </div>
+
             
             <div id="calendar-background-particles"></div>
 
@@ -282,6 +304,7 @@
         const dynamicEventsCollection = collection(db, 'dynamic_events');
 
         document.addEventListener('DOMContentLoaded', async () => { 
+            // Elementos do DOM existentes
             const sidebar = document.getElementById('sidebar');
             const sidebarToggleBtn = document.getElementById('sidebar-toggle');
             const categoryFiltersContainer = document.getElementById('category-filters');
@@ -326,12 +349,18 @@
             const jumpTextEl = document.getElementById('jump-text');
             const jumpDateEl = document.getElementById('jump-date');
             
+            // Novos elementos do DOM para a busca
+            const searchInput = document.getElementById('event-search-input');
+            const searchResultsContainer = document.getElementById('search-results');
+
+
             const sportConfigs = {
                 'Futebol': { particleColor: '#22c55e', color: 'bg-green-500' }, 
                 'Basquete': { particleColor: '#f97316', color: 'bg-orange-500' }, 
                 'Tênis': { particleColor: '#eab308', color: 'bg-yellow-500' }, 
                 'Outros Esportes': { particleColor: '#0ea5e9', color: 'bg-sky-500' }, 
-                'eSports': { particleColor: '#a855f7', color: 'bg-purple-500' }
+                'eSports': { particleColor: '#a855f7', color: 'bg-purple-500' },
+                'Criado por Utilizador': { particleColor: '#ec4899', color: 'bg-pink-500' }
             };
 
             let staticEvents = [];
@@ -367,24 +396,6 @@
             const saveDynamicEvent = async (eventData) => {
                 try {
                     await addDoc(dynamicEventsCollection, eventData);
-                    const sheetData = {
-                        creatorName: eventData.creatorName,
-                        eventName: eventData.nome,
-                        startDate: eventData.data_inicio,
-                        endDate: eventData.data_fim,
-                        eventType: eventData.tipo,
-                        eventCategory: eventData.categoria,
-                        eventLeague: eventData.campeonato || '',
-                        eventDetails: eventData.descricao
-                    };
-
-                    await fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(sheetData)
-                    });
-                    alert('Evento adicionado com sucesso!');
                 } catch (error) {
                     console.error("Erro ao salvar evento:", error);
                     alert("Ocorreu um erro ao salvar o evento.");
@@ -456,6 +467,15 @@
                 activeTrailInfoPanel.classList.remove('hidden');
                 activeTrailInfoPanel.classList.add('flex');
             };
+
+            const highlightDay = (dateStr) => {
+                 document.querySelectorAll('.highlight-day').forEach(d => d.classList.remove('highlight-day'));
+                 const dayEl = document.querySelector(`[data-date='${dateStr}']`);
+                 if(dayEl) {
+                     dayEl.classList.add('highlight-day');
+                     setTimeout(() => dayEl.classList.remove('highlight-day'), 2500);
+                 }
+            }
             
             const renderSingleCalendar = (gridId, headerId, date, events) => {
                 const calendarGrid = document.getElementById(gridId);
@@ -538,6 +558,59 @@
                     }, i * 15); 
                 });
             }
+             
+            // --- INÍCIO: LÓGICA DE BUSCA ---
+            const renderSearchResults = (results) => {
+                searchResultsContainer.innerHTML = '';
+                if(results.length === 0) {
+                    searchResultsContainer.innerHTML = `<div class="p-3 text-gray-400">Nenhum evento encontrado.</div>`;
+                    return;
+                }
+
+                results.forEach(event => {
+                    const resultEl = document.createElement('div');
+                    resultEl.className = 'p-3 hover:bg-gray-700 cursor-pointer border-b border-gray-700 last:border-b-0';
+                    resultEl.innerHTML = `
+                        <p class="font-semibold text-white">${event.nome}</p>
+                        <p class="text-sm text-gray-400">${event.categoria} | Início: ${formatDisplayDate(event.data_inicio)}</p>
+                    `;
+                    resultEl.addEventListener('click', () => {
+                        navigateToEventDate(event.data_inicio);
+                        searchInput.value = '';
+                        searchResultsContainer.classList.add('hidden');
+                    });
+                    searchResultsContainer.appendChild(resultEl);
+                });
+            };
+
+            const handleSearch = (query) => {
+                if(!query) {
+                    searchResultsContainer.classList.add('hidden');
+                    return;
+                }
+                const lowerCaseQuery = query.toLowerCase();
+                const filteredEvents = allEvents.filter(event => 
+                    event.nome.toLowerCase().includes(lowerCaseQuery)
+                );
+                searchResultsContainer.classList.remove('hidden');
+                renderSearchResults(filteredEvents);
+            };
+
+            const navigateToEventDate = (dateStr) => {
+                const eventDate = parseDate(dateStr);
+                if(isNaN(eventDate)) return;
+
+                currentDate = new Date(eventDate.getUTCFullYear(), eventDate.getUTCMonth(), 1);
+                applyFilters();
+                
+                // Highlight the specific day after the calendar has re-rendered
+                setTimeout(() => highlightDay(dateStr), 200);
+            };
+
+            searchInput.addEventListener('input', (e) => {
+                handleSearch(e.target.value);
+            });
+            // --- FIM: LÓGICA DE BUSCA ---
 
             const toggleReminder = (eventData) => {
                 const eventUniqueId = getEventUniqueId(eventData);
@@ -662,8 +735,15 @@
                 });
                 
                 categoryFiltersContainer.innerHTML = filterHtml;
-                eventCategorySelect.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
-
+                
+                // Popula o select do modal de adicionar evento
+                let categoryOptions = '';
+                 Object.keys(sportConfigs).forEach(cat => {
+                    if (cat !== 'Criado por Utilizador') { // Não permite que o user selecione esta categoria manualmente
+                        categoryOptions += `<option value="${cat}">${cat}</option>`;
+                    }
+                 });
+                eventCategorySelect.innerHTML = categoryOptions;
 
                 document.querySelectorAll('.category-filter').forEach(radio => {
                     radio.addEventListener('change', () => {
@@ -728,7 +808,7 @@
             const showUrgencyModal = (milestones) => {
                  const notificationContent = document.getElementById('notification-content');
                  const notificationModalOverlay = document.getElementById('notification-modal-overlay');
-                 if(!notificationContent || !notificationModalOverlay) return;
+                 if(!notificationContent || !notificationModalOverlay || milestones.length === 0) return;
 
                 notificationContent.innerHTML = '';
                 
@@ -756,12 +836,10 @@
                         const eventData = allEvents.find(e => getEventUniqueId(e) === item.eventUniqueId);
                         const isReminderSet = eventData && savedReminders.includes(getEventUniqueId(eventData));
 
-                        const countdownId = `countdown-${dateKey}-${index}`;
                         groupHtml += `
                         <div class="bg-gray-700 p-3 rounded-lg text-sm flex items-center justify-between cursor-pointer modal-event-item-clickable" data-event-unique-id="${item.eventUniqueId}">
                             <div>
                                 <p><span class="font-semibold">${item.type}:</span> <span class="event-name-modal ${isReminderSet ? 'is-reminder' : ''}">${item.name}</span></p>
-                                <p id="${countdownId}" class="text-xs text-amber-400 countdown-pulse mt-1"></p>
                             </div>
                         </div>`;
                     });
@@ -837,7 +915,8 @@
                     }, 100 + (index * 50));
                 });
                 applyFilters();
-                setTimeout(checkAndNotifyUpcomingEvents, 1500); 
+                // CORREÇÃO: Reactivar o pop-up de eventos futuros
+                setTimeout(checkAndNotifyUpcomingEvents, 1500);
             };
 
             const closeModal = () => {
@@ -881,13 +960,14 @@
                     return;
                 }
                 
+                // CORREÇÃO: Usar o valor selecionado no seletor de categoria
                 const eventData = {
                     creatorName: creatorNameInput.value,
                     nome: document.getElementById('event-name').value,
                     data_inicio: startDate,
                     data_fim: endDate,
                     tipo: eventType,
-                    categoria: eventCategorySelect.value,
+                    categoria: eventCategorySelect.value, 
                     campeonato: eventLeagueInput.value,
                     descricao: document.getElementById('event-details').value,
                     creatorId: currentUser.uid, 
@@ -898,13 +978,13 @@
                 addEventForm.reset();
                 closeAddEventModal();
             });
-
+            
             eventTypeSelect.addEventListener('change', () => {
                 const isMatch = eventTypeSelect.value === 'Partida';
-                eventLeagueInput.classList.toggle('hidden', !isMatch);
+                
                 competitionDatesContainer.classList.toggle('hidden', isMatch);
                 matchDateContainer.classList.toggle('hidden', !isMatch);
-                
+                eventLeagueInput.classList.toggle('hidden', !isMatch);
                 startDateInput.required = !isMatch;
                 endDateInput.required = !isMatch;
                 matchDateInput.required = isMatch;
@@ -939,29 +1019,29 @@
                 userDropdown.classList.toggle('scale-95');
             });
 
-            window.addEventListener('click', (e) => {
-                if (userProfileArea && !userProfileArea.contains(e.target)) {
-                    userDropdown.classList.add('hidden', 'opacity-0', 'scale-95');
-                }
-            });
-
             // --- GENERAL EVENT LISTENERS ---
             sidebarToggleBtn.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
             closeDetailsBtn.addEventListener('click', () => detailsPanel.classList.remove('open'));
             clearTrailBtn.addEventListener('click', clearActiveTrail);
             
-            const notificationModalOverlayElem = document.getElementById('notification-modal-overlay');
-            const closeModalBtnElem = document.getElementById('close-modal-btn');
-            
-            if(closeModalBtnElem) closeModalBtnElem.addEventListener('click', closeModal);
-            if(notificationModalOverlayElem) notificationModalOverlayElem.addEventListener('click', (e) => { if(e.target === notificationModalOverlayElem) closeModal(); });
-            
+            if(closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+            if(notificationModalOverlay) notificationModalOverlay.addEventListener('click', (e) => { if(e.target === notificationModalOverlay) closeModal(); });
+
             addEventBtn.addEventListener('click', openAddEventModal);
             closeAddEventModalBtn.addEventListener('click', closeAddEventModal);
             addEventModalOverlay.addEventListener('click', (e) => { if(e.target === addEventModalOverlay) closeAddEventModal(); });
             
             prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 2); applyFilters(); });
             nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 2); applyFilters(); });
+            
+            window.addEventListener('click', (e) => {
+                if (!searchResultsContainer.contains(e.target) && e.target !== searchInput) {
+                    searchResultsContainer.classList.add('hidden');
+                }
+                if (userProfileArea && !userProfileArea.contains(e.target)) {
+                    userDropdown.classList.add('hidden', 'opacity-0', 'scale-95');
+                }
+            });
 
 
             // --- INICIALIZAÇÃO ---
