@@ -14,15 +14,43 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #111827; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #111827; 
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+        }
+        body.loaded {
+            opacity: 1;
+        }
+
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1f2937; }
         ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
 
-        .calendar-day { transition: all 0.2s ease-in-out; }
+        .calendar-day {
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+        .calendar-day.visible {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        .filter-item, .nav-item {
+             opacity: 0;
+            transform: translateX(-20px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+        .filter-item.visible, .nav-item.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
         .calendar-day.has-events { cursor: pointer; background-color: #1f2937; }
-        .calendar-day.has-events:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(79, 70, 229, 0.5); }
+        .calendar-day.has-events:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(79, 70, 229, 0.5); z-index: 10; }
         .calendar-day.today { border: 2px solid #4f46e5; }
 
         #day-details-panel { transition: transform 0.3s ease-in-out; transform: translateX(100%); z-index: 50; }
@@ -46,7 +74,11 @@
 
         .reminder-bell.active { color: #facc15; } /* yellow-400 */
 
-        /* Estilos para a seção de comentários recolhível */
+        #match-details-modal.open {
+            transform: scale(1);
+            opacity: 1;
+        }
+
         .comments-collapsible-content {
             max-height: 0;
             overflow: hidden;
@@ -57,6 +89,10 @@
             max-height: 500px; /* Um valor grande o suficiente para a maioria dos comentários */
             opacity: 1;
         }
+
+        #user-dropdown {
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+        }
     </style>
 </head>
 <body class="text-gray-200">
@@ -66,55 +102,57 @@
             <h2 class="text-2xl font-bold text-white whitespace-nowrap">Navegação</h2>
             <nav>
                 <ul>
-                    <li><a href="Partidas.html" class="block py-2 px-4 rounded-lg bg-indigo-600 text-white">Calendário de Partidas</a></li>
-                    <li><a href="eventos.html" class="block py-2 px-4 rounded-lg hover:bg-gray-700">Eventos</a></li>
+                    <li class="nav-item"><a href="Partidas.html" class="block py-2 px-4 rounded-lg bg-indigo-600 text-white">Calendário de Partidas</a></li>
+                    <li class="nav-item"><a href="eventos.html" class="block py-2 px-4 rounded-lg hover:bg-gray-700">Eventos</a></li>
                 </ul>
             </nav>
 
             <hr class="border-gray-700">
 
-            <h2 class="text-2xl font-bold text-white whitespace-nowrap">Filtros</h2>
+            <div id="filter-container">
+                <h2 class="text-2xl font-bold text-white whitespace-nowrap">Filtros</h2>
 
-            <div>
-                <label for="view-mode" class="block text-sm font-medium text-gray-400 mb-2 whitespace-nowrap">Mostrar eventos:</label>
-                <select id="view-mode" class="w-full bg-gray-800 border-gray-700 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="principais">Principais Eventos (Filtrados)</option>
-                    <option value="todos">Todos os Eventos</option>
-                    <option value="lembretes">Meus Lembretes 🔔</option>
-                </select>
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-400 mb-2 whitespace-nowrap">Período:</label>
-                <div class="flex space-x-4">
-                    <label class="flex items-center"><input type="radio" name="event-period" value="upcoming" class="text-indigo-600 bg-gray-700 border-gray-600 focus:ring-indigo-500" checked><span class="ml-2">Próximos</span></label>
-                    <label class="flex items-center"><input type="radio" name="event-period" value="past" class="text-indigo-600 bg-gray-700 border-gray-600 focus:ring-indigo-500"><span class="ml-2">Anteriores</span></label>
+                <div class="filter-item mt-4">
+                    <label for="view-mode" class="block text-sm font-medium text-gray-400 mb-2 whitespace-nowrap">Mostrar eventos:</label>
+                    <select id="view-mode" class="w-full bg-gray-800 border-gray-700 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="principais">Principais Eventos (Filtrados)</option>
+                        <option value="todos">Todos os Eventos</option>
+                        <option value="lembretes">Meus Lembretes 🔔</option>
+                    </select>
                 </div>
-            </div>
-
-            <div id="team-search-container">
-                <label for="team-search" class="block text-sm font-medium text-gray-400 mb-2 whitespace-nowrap">Buscar por time:</label>
-                <div class="relative">
-                    <input type="text" id="team-search" placeholder="Ex: Palmeiras" class="w-full bg-gray-800 border-gray-700 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500" autocomplete="off">
-                    <div id="autocomplete-results" class="absolute z-20 w-full bg-gray-700 rounded-b-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
+                
+                <div class="filter-item mt-4">
+                    <label class="block text-sm font-medium text-gray-400 mb-2 whitespace-nowrap">Período:</label>
+                    <div class="flex space-x-4">
+                        <label class="flex items-center"><input type="radio" name="event-period" value="upcoming" class="text-indigo-600 bg-gray-700 border-gray-600 focus:ring-indigo-500" checked><span class="ml-2">Próximos</span></label>
+                        <label class="flex items-center"><input type="radio" name="event-period" value="past" class="text-indigo-600 bg-gray-700 border-gray-600 focus:ring-indigo-500"><span class="ml-2">Anteriores</span></label>
+                    </div>
                 </div>
-            </div>
 
-            <div id="hot-games-filter-container" class="whitespace-nowrap">
-                 <label for="hot-games-toggle" class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="hot-games-toggle" class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-                    <span class="ml-3 text-sm font-medium text-gray-300">Apenas Jogos Quentes 🔥</span>
-                </label>
-            </div>
+                <div id="team-search-container" class="filter-item mt-4">
+                    <label for="team-search" class="block text-sm font-medium text-gray-400 mb-2 whitespace-nowrap">Buscar por time:</label>
+                    <div class="relative">
+                        <input type="text" id="team-search" placeholder="Ex: Palmeiras" class="w-full bg-gray-800 border-gray-700 rounded-lg p-2 focus:ring-indigo-500 focus:border-indigo-500" autocomplete="off">
+                        <div id="autocomplete-results" class="absolute z-20 w-full bg-gray-700 rounded-b-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
+                    </div>
+                </div>
 
-            <div id="sport-filters" class="whitespace-nowrap">
-                <h3 class="text-lg font-semibold text-white mb-2">Esportes</h3>
-            </div>
+                <div id="hot-games-filter-container" class="whitespace-nowrap filter-item mt-4">
+                    <label for="hot-games-toggle" class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="hot-games-toggle" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                        <span class="ml-3 text-sm font-medium text-gray-300">Apenas Jogos Quentes 🔥</span>
+                    </label>
+                </div>
 
-            <div id="league-filters" class="whitespace-nowrap hidden">
-                <h3 class="text-lg font-semibold text-white mb-2">Campeonatos</h3>
-                <select id="league-select" multiple class="w-full bg-gray-800 border-gray-700 rounded-lg p-2 h-48 focus:ring-indigo-500 focus:border-indigo-500"></select>
+                <div id="sport-filters" class="whitespace-nowrap filter-item mt-4">
+                    <h3 class="text-lg font-semibold text-white mb-2">Esportes</h3>
+                </div>
+
+                <div id="league-filters" class="whitespace-nowrap hidden filter-item mt-4">
+                    <h3 class="text-lg font-semibold text-white mb-2">Campeonatos</h3>
+                    <select id="league-select" multiple class="w-full bg-gray-800 border-gray-700 rounded-lg p-2 h-48 focus:ring-indigo-500 focus:border-indigo-500"></select>
+                </div>
             </div>
             
             <div id="save-status-container" class="mt-auto pt-4 border-t border-gray-700">
@@ -127,18 +165,22 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
 
-            <div id="auth-section" class="absolute top-6 right-6 z-30 space-y-2 text-right">
-                <div id="user-info" class="flex items-center space-x-2 justify-end hidden">
-                    <span id="user-name" class="text-gray-300 truncate"></span>
-                    <img id="user-photo" class="w-8 h-8 rounded-full" alt="User Photo">
-                </div>
-                <button id="login-button" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-2 px-4 rounded hidden whitespace-nowrap">
+            <div id="auth-section" class="absolute top-6 right-6 z-30">
+                <button id="login-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg hidden whitespace-nowrap">
                     Login com Google
                 </button>
-                <button id="logout-button" class="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-4 rounded hidden whitespace-nowrap">
-                    Sair
-                </button>
-                <p id="auth-status" class="text-sm text-gray-400"></p>
+            
+                <div id="user-profile-area" class="relative hidden">
+                    <img id="user-photo" class="w-10 h-10 rounded-full cursor-pointer border-2 border-transparent hover:border-indigo-500 transition-colors" alt="Foto do usuário">
+                    <div id="user-dropdown" class="absolute right-0 mt-2 w-56 bg-gray-700 rounded-md shadow-lg py-1 hidden transform opacity-0 scale-95 transition ease-in-out duration-100">
+                        <div class="px-4 py-3 text-sm text-gray-200">
+                            <p class="font-semibold">Logado como:</p>
+                            <p id="user-name" class="truncate"></p>
+                        </div>
+                        <div class="border-t border-gray-600"></div>
+                        <a href="#" id="logout-button" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-600 hover:text-red-300">Sair</a>
+                    </div>
+                </div>
             </div>
 
 
@@ -149,9 +191,6 @@
             <div id="calendar-background-particles"></div>
             
             <div id="calendars-container" class="relative flex justify-center items-start">
-                <button id="prev-month" class="absolute top-0 left-0 p-2 rounded-full hover:bg-gray-700 z-10 mt-4 ml-4 text-white">&lt;</button>
-                <button id="next-month" class="absolute top-0 right-0 p-2 rounded-full hover:bg-gray-700 z-10 mt-4 mr-4 text-white">&gt;</button>
-
                 <div id="next-event-prompt" class="absolute inset-0 flex-col items-center justify-center bg-black bg-opacity-75 hidden z-20 rounded-lg p-8 text-center">
                     <p id="prompt-title" class="text-2xl font-bold text-white mb-4"></p>
                     <button id="jump-to-event-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg flex items-center transition-transform transform hover:scale-105">
@@ -159,9 +198,23 @@
                     </button>
                 </div>
                 
-                <div id="calendar-1" class="w-full max-w-xl px-4"><h2 id="month-year-1" class="text-2xl font-bold text-center mb-4"></h2><div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div><div id="calendar-grid-1" class="grid grid-cols-7 gap-4"></div></div>
+                <div id="calendar-1" class="w-full max-w-xl px-4">
+                    <div class="flex items-center justify-center relative mb-4">
+                        <button id="prev-month" class="absolute left-0 p-2 rounded-full hover:bg-gray-700 text-white"><</button>
+                        <h2 id="month-year-1" class="text-2xl font-bold"></h2>
+                    </div>
+                    <div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
+                    <div id="calendar-grid-1" class="grid grid-cols-7 gap-4"></div>
+                </div>
                 <div class="h-auto self-stretch border-l border-gray-700 mx-4"></div>
-                <div id="calendar-2" class="w-full max-w-xl px-4"><h2 id="month-year-2" class="text-2xl font-bold text-center mb-4"></h2><div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div><div id="calendar-grid-2" class="grid grid-cols-7 gap-4"></div></div>
+                <div id="calendar-2" class="w-full max-w-xl px-4">
+                    <div class="flex items-center justify-center relative mb-4">
+                        <h2 id="month-year-2" class="text-2xl font-bold"></h2>
+                        <button id="next-month" class="absolute right-0 p-2 rounded-full hover:bg-gray-700 text-white">></button>
+                    </div>
+                    <div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
+                    <div id="calendar-grid-2" class="grid grid-cols-7 gap-4"></div>
+                </div>
             </div>
 
             <div id="loading-indicator" class="text-center py-10 hidden">Carregando eventos...</div>
@@ -172,14 +225,25 @@
         <div class="flex justify-between items-center mb-6"><h2 id="details-title" class="text-2xl font-bold text-white">Eventos do Dia</h2><button id="close-details" class="p-2 rounded-full hover:bg-gray-700">X</button></div>
         <div id="details-content" class="space-y-4"></div>
         
+    </div>
+
+    <div id="match-details-modal-overlay" class="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center hidden z-50">
+        <div id="match-details-modal" class="bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col scale-95 opacity-0 transition-all duration-300">
+            <div class="flex justify-between items-center p-4 border-b border-gray-700 flex-shrink-0">
+                <h2 id="modal-match-title" class="text-xl font-bold text-white">Detalhes da Partida</h2>
+                <button id="close-match-modal-btn" class="p-2 rounded-full hover:bg-gray-700 text-2xl leading-none">×</button>
+            </div>
+            <div id="modal-match-content" class="p-6 overflow-y-auto">
+                </div>
         </div>
+    </div>
     
     <div id="toast-container" class="fixed bottom-5 right-5 w-full max-w-sm space-y-4 z-50">
         <div id="welcome-toast" class="bg-gray-800 rounded-lg shadow-lg text-white hidden transform transition-all duration-300 translate-y-16 p-4">
-            <div class="flex justify-between items-start"><div class="flex-1"><h3 class="font-bold">� Fique de Olho!</h3><p id="toast-message" class="text-sm mt-1 whitespace-pre-wrap"></p></div><button id="close-toast" class="ml-2 text-gray-400 hover:text-white text-2xl leading-none">&times;</button></div>
+            <div class="flex justify-between items-start"><div class="flex-1"><h3 class="font-bold">🔥 Fique de Olho!</h3><p id="toast-message" class="text-sm mt-1 whitespace-pre-wrap"></p></div><button id="close-toast" class="ml-2 text-gray-400 hover:text-white text-2xl leading-none">×</button></div>
         </div>
          <div id="reminder-toast" class="bg-indigo-700 rounded-lg shadow-lg text-white hidden transform transition-all duration-300 translate-y-16 p-4">
-            <div class="flex justify-between items-start"><div class="flex-1"><h3 class="font-bold">🔔 Lembretes para Hoje!</h3><p id="reminder-message" class="text-sm mt-1 whitespace-pre-wrap"></p></div><button id="close-reminder-toast" class="ml-2 text-gray-400 hover:text-white text-2xl leading-none">&times;</button></div>
+            <div class="flex justify-between items-start"><div class="flex-1"><h3 class="font-bold">🔔 Lembretes para Hoje!</h3><p id="reminder-message" class="text-sm mt-1 whitespace-pre-wrap"></p></div><button id="close-reminder-toast" class="ml-2 text-gray-400 hover:text-white text-2xl leading-none">×</button></div>
         </div>
     </div>
 
@@ -226,20 +290,50 @@
             const viewModeSelect = document.getElementById('view-mode');
             const loginButton = document.getElementById('login-button');
             const logoutButton = document.getElementById('logout-button');
-            const userInfo = document.getElementById('user-info');
+            const userProfileArea = document.getElementById('user-profile-area');
             const userPhoto = document.getElementById('user-photo');
             const userName = document.getElementById('user-name');
-            const authStatus = document.getElementById('auth-status');
+            const userDropdown = document.getElementById('user-dropdown');
+            // Modal Elements
+            const matchDetailsModalOverlay = document.getElementById('match-details-modal-overlay');
+            const matchDetailsModal = document.getElementById('match-details-modal');
+            const modalMatchTitle = document.getElementById('modal-match-title');
+            const modalMatchContent = document.getElementById('modal-match-content');
+            const closeMatchModalBtn = document.getElementById('close-match-modal-btn');
 
             // --- CONFIGURAÇÃO ---
             const API_KEY = '373862';
             const CACHE_DURATION_MINUTES = 15;
+            const CACHE_VERSION = '1.4'; // Versão do Cache: Mude este valor para invalidar o cache antigo (ex: '1.3', '1.4')
             const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz5aInrAmXeUCwn40ybZVbx8efrQQyAw6BvUnHYG9X_MLkmjHCFBtjwMVROZZDzgTTl/exec';
 
             const sportConfigs = {
-                'Futebol': { color: 'bg-blue-500', particleColor: '#3b82f6', backgroundImage: 'url(https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1000&auto=format&fit=crop)', leagues: { 'serie_a': { id: '4351', name: 'Brasileirão Série A' },'copa_do_brasil': { id: '4725', name: 'Copa do Brasil' },'libertadores': { id: '4501', name: 'Copa Libertadores' },'sudamericana': { id: '4724', name: 'Copa Sudamericana' },'premier_league': { id: '4328', name: 'English Premier League' },'la_liga': { id: '4335', name: 'Spanish La Liga' },'serie_a_italy': { id: '4332', name: 'Italian Serie A' },'primeira_liga': { id: '4344', name: 'Portuguese Primeira Liga' },'champions_league': { id: '4480', name: 'UEFA Champions League' },'copa_america': { id: '4499', name: 'Copa America' },'world_cup': { id: '4429', name: 'FIFA World Cup' },'mundial_clubes': { id: '4503', name: 'FIFA Club World Cup' } } },
+                'Futebol': { 
+                    color: 'bg-blue-500', 
+                    particleColor: '#3b82f6', 
+                    backgroundImage: 'url(https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=1000&auto=format&fit=crop)', 
+                    leagues: { 
+                        'serie_a': { id: '4351', name: 'Brasileirão Série A' },
+                        'copa_do_brasil': { id: '4725', name: 'Copa do Brasil' },
+                        'libertadores': { id: '4501', name: 'Copa Libertadores' },
+                        'sudamericana': { id: '4724', name: 'Copa Sudamericana' },
+                        'premier_league': { id: '4328', name: 'English Premier League' },
+                        'la_liga': { id: '4335', name: 'Spanish La Liga' },
+                        'serie_a_italy': { id: '4332', name: 'Italian Serie A' },
+                        'primeira_liga': { id: '4344', name: 'Portuguese Primeira Liga' },
+                        'champions_league': { id: '4480', name: 'UEFA Champions League' },
+                        'copa_america': { id: '4499', name: 'Copa America' },
+                        'world_cup': { id: '4429', name: 'FIFA World Cup' },
+                        'mundial_clubes': { id: '4503', name: 'FIFA Club World Cup' },
+                        'bundesliga': { id: '4331', name: 'German Bundesliga' },
+                        'mls': { id: '4346', name: 'American Major League Soccer' },
+                        'arg_primera': { id: '4406', name: 'Argentinian Primera Division' }
+                    } 
+                },
                 'Basquete': { color: 'bg-orange-500', particleColor: '#f97316', backgroundImage: 'url(https://images.unsplash.com/photo-1574313433589-9b3575d5a711?q=80&w=1000&auto=format&fit=crop)', leagues: { 'nba': { id: '4387', name: 'NBA' } } },
                 'Tênis': { color: 'bg-lime-500', particleColor: '#84cc16', backgroundImage: 'url(https://images.unsplash.com/photo-1554062234-3180f9344402?q=80&w=1000&auto=format&fit=crop)', leagues: { 'atp_world_tour': { id: '4464', name: 'ATP World Tour' }, 'wta_tour': { id: '4517', name: 'WTA Tour' } } },
+                'ESports': { color: 'bg-purple-500', particleColor: '#a855f7', backgroundImage: 'url(https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1000&auto=format&fit=crop)', leagues: { 'lol_worlds': { id: '4514', name: 'LoL World Championship' }, 'lol_lpl': { id: '4528', name: 'LoL Pro League (LPL)' }, 'lol_lck': { id: '4529', name: 'LoL Champions Korea (LCK)' }, 'lol_lec': { id: '4530', name: 'LoL EMEA Championship (LEC)' }, 'lol_lcs': { id: '4531', name: 'LoL Championship Series (LCS)' }, 'lol_lta': { id: '5631', name: 'League of The Americas (LTA)' }, 'cs_esl': { id: '5425', name: 'ESL Pro League (CS)' }, 'cs_blast': { id: '5426', name: 'Blast Premier (CS)' } } },
+                'Poker': { color: 'bg-red-600', particleColor: '#dc2626', backgroundImage: 'url(https://images.unsplash.com/photo-1542822014-9e35b06f4527?q=80&w=1000&auto=format&fit=crop)', leagues: { 'wsop': { id: '5452', name: 'World Series of Poker' }, 'wsop_europe': { id: '5453', name: 'WSOP Europe' }, 'poker_masters': { id: '5459', name: 'Poker Masters' }, 'us_poker_open': { id: '5460', name: 'US Poker Open' } } }
             };
             
             const topTeams = [
@@ -262,18 +356,27 @@
             let savedReminders = [];
             let currentUser = null;
 
+            function animateCalendarDays() {
+                const days = document.querySelectorAll('.calendar-day');
+                days.forEach((day, index) => {
+                    setTimeout(() => {
+                        day.classList.add('visible');
+                    }, index * 20); // Atraso de 20ms entre cada dia
+                });
+            }
+
             const getCache = key => {
                 const itemStr = localStorage.getItem(key);
                 if (!itemStr) return null;
                 const item = JSON.parse(itemStr);
-                if (new Date().getTime() > item.expiry) {
+                if (item.version !== CACHE_VERSION || new Date().getTime() > item.expiry) {
                     localStorage.removeItem(key); return null;
                 }
                 return item.value;
             };
 
             const setCache = (key, value) => {
-                const item = { value, expiry: new Date().getTime() + CACHE_DURATION_MINUTES * 60 * 1000 };
+                const item = { value, version: CACHE_VERSION, expiry: new Date().getTime() + CACHE_DURATION_MINUTES * 60 * 1000 };
                 localStorage.setItem(key, JSON.stringify(item));
             };
             
@@ -364,7 +467,7 @@
 
             async function fetchAllEventsForPeriod() {
                 loadingIndicator.style.display = 'block';
-                const cacheKey = `all_events_cache_${eventPeriod}`;
+                const cacheKey = `all_events_cache_${eventPeriod}_v${CACHE_VERSION}`;
                 let cachedEvents = getCache(cacheKey);
 
                 if (cachedEvents) {
@@ -467,6 +570,7 @@
                 const month2 = date2.getMonth();
                 const year2 = date2.getFullYear();
                 renderSingleCalendar('calendar-grid-2', 'month-year-2', month2, year2, events);
+                animateCalendarDays();
             }
 
             function populateFilters() {
@@ -474,7 +578,7 @@
                 leagueSelect.innerHTML = '';
                 
                 for (const sportName in sportConfigs) {
-                    sportHtml += `<label class="flex items-center space-x-2"><input type="checkbox" value="${sportName}" class="sport-filter bg-gray-700 border-gray-600 rounded"><span>${sportName}</span></label>`;
+                    sportHtml += `<label class="flex items-center space-x-2 filter-item"><input type="checkbox" value="${sportName}" class="sport-filter bg-gray-700 border-gray-600 rounded"><span>${sportName}</span></label>`;
                     
                     const optgroup = document.createElement('optgroup');
                     optgroup.label = sportName;
@@ -491,7 +595,7 @@
                     }
                     leagueSelect.appendChild(optgroup);
                 }
-                sportFiltersContainer.innerHTML = '<h3 class="text-lg font-semibold text-white mb-2">Esportes</h3>' + sportHtml;
+                document.querySelector('#sport-filters').innerHTML += sportHtml;
 
                 document.querySelectorAll('.sport-filter').forEach(el => el.addEventListener('change', updateLeagueFilterVisibility));
                 leagueSelect.addEventListener('change', applyFiltersAndRender);
@@ -608,7 +712,7 @@
 
             async function saveUserComment(userId, userName, userPhotoUrl, eventId, commentText) {
                 try {
-                    await addDoc(collection(db, 'comments'), {
+                    const newCommentRef = await addDoc(collection(db, 'comments'), {
                         userId: userId,
                         userName: userName,
                         userPhoto: userPhotoUrl,
@@ -616,27 +720,77 @@
                         comment: commentText,
                         timestamp: serverTimestamp()
                     });
-                    console.log('Comment saved!');
-                    const textareaForEvent = document.getElementById(`comment-text-${eventId}`);
-                    if (textareaForEvent) textareaForEvent.value = '';
-                    loadCommentsForEvent(eventId, document.getElementById(`comments-list-${eventId}`), document.getElementById(`no-comments-message-${eventId}`));
+                    console.log('Comment saved to Firestore, fetching for UI update...');
+            
+                    const newCommentSnap = await getDoc(newCommentRef);
+                    if (newCommentSnap.exists()) {
+                        const commentData = newCommentSnap.data();
+                        const commentsListElement = document.getElementById(`comments-list-${eventId}`);
+                        const noCommentsMessageElement = document.getElementById(`no-comments-message-${eventId}`);
+            
+                        const commentHtml = `
+                            <div class="bg-gray-700 p-3 rounded-lg flex items-start space-x-3 relative">
+                                <img src="${commentData.userPhoto || 'https://via.placeholder.com/24/374151/FFFFFF?text=?'}" class="w-6 h-6 rounded-full" alt="User Photo">
+                                <div>
+                                    <p class="text-sm font-semibold text-white">${commentData.userName}</p>
+                                    <p class="text-xs text-gray-400">${commentData.comment}</p>
+                                    <p class="text-xs text-gray-500 mt-1">${new Date(commentData.timestamp.toDate()).toLocaleString('pt-BR')}</p>
+                                </div>
+                                <button class="absolute top-2 right-2 text-red-400 hover:text-red-600 text-sm font-bold" data-comment-id="${newCommentSnap.id}" data-event-id="${eventId}">Excluir</button>
+                            </div>
+                        `;
+            
+                        if (noCommentsMessageElement && !noCommentsMessageElement.classList.contains('hidden')) {
+                            noCommentsMessageElement.classList.add('hidden');
+                        }
+                        if (commentsListElement) {
+                            commentsListElement.insertAdjacentHTML('beforeend', commentHtml);
+                            const newDeleteButton = commentsListElement.querySelector(`[data-comment-id="${newCommentSnap.id}"]`);
+                            if (newDeleteButton) {
+                                 newDeleteButton.addEventListener('click', (e) => {
+                                    const commentId = e.target.dataset.commentId;
+                                    const eventId = e.target.dataset.eventId;
+                                    if (confirm('Tem certeza que deseja excluir este comentário?')) {
+                                        deleteUserComment(commentId, eventId);
+                                    }
+                                });
+                            }
+                        }
+            
+                        const textareaForEvent = document.getElementById(`comment-text-${eventId}`);
+                        if (textareaForEvent) textareaForEvent.value = '';
+                    }
+            
                 } catch (error) {
                     console.error('Error saving comment:', error);
                     alert('Erro ao salvar comentário. Tente novamente.');
                 }
             }
-
+            
             async function deleteUserComment(commentId, eventId) {
                 try {
                     const commentRef = doc(db, 'comments', commentId);
                     await deleteDoc(commentRef);
-                    console.log('Comment deleted!');
-                    loadCommentsForEvent(eventId, document.getElementById(`comments-list-${eventId}`), document.getElementById(`no-comments-message-${eventId}`));
+                    console.log('Comment deleted from Firestore!');
+            
+                    const commentElement = document.querySelector(`button[data-comment-id="${commentId}"]`).closest('.bg-gray-700.p-3');
+                    if (commentElement) {
+                        commentElement.remove();
+                    }
+            
+                    const commentsListElement = document.getElementById(`comments-list-${eventId}`);
+                    if (commentsListElement && commentsListElement.children.length === 0) {
+                        const noCommentsMessageElement = document.getElementById(`no-comments-message-${eventId}`);
+                        if (noCommentsMessageElement) {
+                            noCommentsMessageElement.classList.remove('hidden');
+                        }
+                    }
                 } catch (error) {
                     console.error('Error deleting comment:', error);
                     alert('Erro ao excluir comentário. Tente novamente ou verifique se você é o autor.');
                 }
             }
+
 
             async function loadCommentsForEvent(eventId, commentsListElement, noCommentsMessageElement) {
                 commentsListElement.innerHTML = ''; 
@@ -702,6 +856,139 @@
                     showDayDetails(openDate, allEventsData[eventPeriod]);
                 }
             }
+            
+            function renderModalContent(container, lineupData, statsData, highlightsData, eventName) {
+                let html = '';
+
+                // 1. Lineups
+                html += `<h4 class="text-lg font-bold text-white mb-3 border-b border-gray-600 pb-2">Escalações</h4>`;
+                const lineups = lineupData.lineup;
+                if (lineups && lineups.length > 0) {
+                    const homeTeam = lineups.filter(p => p.strTeam === 'Home');
+                    const awayTeam = lineups.filter(p => p.strTeam === 'Away');
+                    html += `<div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">`;
+                    // Home Team Lineup
+                    html += `<div><h5 class="font-semibold mb-2 text-indigo-300">${homeTeam[0]?.strHome || 'Time da Casa'}</h5><ul class="space-y-1">`;
+                    homeTeam.forEach(player => {
+                        html += `<li class="text-gray-300">${player.strPlayer} <span class="text-gray-500">(${player.strPosition})</span></li>`;
+                    });
+                    html += `</ul></div>`;
+                    // Away Team Lineup
+                    html += `<div><h5 class="font-semibold mb-2 text-indigo-300">${awayTeam[0]?.strAway || 'Time Visitante'}</h5><ul class="space-y-1">`;
+                    awayTeam.forEach(player => {
+                        html += `<li class="text-gray-300">${player.strPlayer} <span class="text-gray-500">(${player.strPosition})</span></li>`;
+                    });
+                    html += `</ul></div>`;
+                    html += `</div>`;
+                } else {
+                    html += `<p class="text-gray-400 text-sm">Escalações não disponíveis.</p>`;
+                }
+
+                // 2. Statistics
+                html += `<h4 class="text-lg font-bold text-white mt-6 mb-3 border-b border-gray-600 pb-2">Estatísticas</h4>`;
+                const stats = statsData.eventstats;
+                if (stats && stats.length > 0) {
+                    html += `<ul class="space-y-2 text-sm">`;
+                    stats.forEach(stat => {
+                        html += `
+                            <li class="flex justify-between items-center bg-gray-900 p-2 rounded-md">
+                                <span class="font-bold text-lg w-1/4 text-left">${stat.intHome || 0}</span>
+                                <span class="text-gray-400 text-center w-1/2">${stat.strStat}</span>
+                                <span class="font-bold text-lg w-1/4 text-right">${stat.intAway || 0}</span>
+                            </li>
+                        `;
+                    });
+                    html += `</ul>`;
+                } else {
+                    html += `<p class="text-gray-400 text-sm">Estatísticas não disponíveis.</p>`;
+                }
+
+                // 3. Video Highlights
+                html += `<h4 class="text-lg font-bold text-white mt-6 mb-3 border-b border-gray-600 pb-2">Destaques em Vídeo</h4>`;
+                const eventHighlight = highlightsData.tvhighlights?.find(h => h.strEvent === eventName);
+                if (eventHighlight && eventHighlight.strVideo) {
+                    const videoIdMatch = eventHighlight.strVideo.match(/(?:v=|\/embed\/|\.be\/)([a-zA-Z0-9_-]{11})/);
+                    if (videoIdMatch && videoIdMatch[1]) {
+                        const videoId = videoIdMatch[1];
+                        html += `
+                            <div id="resizable-video-container" class="relative w-full" style="height: 300px;">
+                                <iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="rounded-lg w-full h-full"></iframe>
+                            </div>
+                            <div id="video-resize-handle" class="w-full h-4 mt-1 flex items-center justify-center cursor-ns-resize group">
+                                <div class="w-10 h-1 bg-gray-600 rounded-full group-hover:bg-indigo-400 transition-colors"></div>
+                            </div>
+                        `;
+                    } else {
+                        html += `<a href="${eventHighlight.strVideo}" target="_blank" rel="noopener noreferrer" class="inline-block bg-red-600 text-white font-bold py-2 px-4 rounded hover:bg-red-700 transition-colors">Assista no YouTube</a>`;
+                    }
+                } else {
+                    html += `<p class="text-gray-400 text-sm">Nenhum destaque em vídeo encontrado para esta partida.</p>`;
+                }
+
+                container.innerHTML = html;
+            }
+
+            async function openMatchDetailsModal(event) {
+                modalMatchTitle.textContent = event.strEvent;
+                matchDetailsModalOverlay.classList.remove('hidden');
+                setTimeout(() => matchDetailsModal.classList.add('open'), 10);
+
+                modalMatchContent.innerHTML = `<div class="text-center p-8">Carregando detalhes da partida...</div>`;
+                
+                try {
+                    const [lineupRes, statsRes, highlightsRes] = await Promise.all([
+                        fetch(`https://www.thesportsdb.com/api/v1/json/${API_KEY}/lookuplineup.php?id=${event.idEvent}`),
+                        fetch(`https://www.thesportsdb.com/api/v1/json/${API_KEY}/lookupeventstats.php?id=${event.idEvent}`),
+                        fetch(`https://www.thesportsdb.com/api/v1/json/${API_KEY}/eventshighlights.php?d=${event.dateEvent}`)
+                    ]);
+
+                    const lineupData = await lineupRes.json();
+                    const statsData = await statsRes.json();
+                    const highlightsData = await highlightsRes.json();
+
+                    renderModalContent(modalMatchContent, lineupData, statsData, highlightsData, event.strEvent);
+
+                    const videoContainer = document.getElementById('resizable-video-container');
+                    const resizeHandle = document.getElementById('video-resize-handle');
+
+                    if (videoContainer && resizeHandle) {
+                        const onMouseDown = (e) => {
+                            e.preventDefault();
+                            const startHeight = videoContainer.offsetHeight;
+                            const startY = e.clientY;
+                            document.body.style.userSelect = 'none';
+
+                            const onMouseMove = (moveEvent) => {
+                                const newHeight = startHeight + moveEvent.clientY - startY;
+                                if (newHeight > 150) { 
+                                    videoContainer.style.height = `${newHeight}px`;
+                                }
+                            };
+
+                            const onMouseUp = () => {
+                                document.body.style.userSelect = '';
+                                window.removeEventListener('mousemove', onMouseMove);
+                                window.removeEventListener('mouseup', onMouseUp);
+                            };
+
+                            window.addEventListener('mousemove', onMouseMove);
+                            window.addEventListener('mouseup', onMouseUp);
+                        };
+                        resizeHandle.addEventListener('mousedown', onMouseDown);
+                    }
+
+                } catch (error) {
+                    console.error('Error fetching match details:', error);
+                    modalMatchContent.innerHTML = `<div class="text-center p-8 text-red-400">Não foi possível carregar os detalhes. Verifique sua conexão e tente novamente.</div>`;
+                }
+            }
+            
+            function closeMatchDetailsModal() {
+                 matchDetailsModal.classList.remove('open');
+                 setTimeout(() => {
+                    matchDetailsModalOverlay.classList.add('hidden');
+                 }, 300);
+            }
 
             function showDayDetails(dateStr, events) {
                 detailsPanel.dataset.date = dateStr;
@@ -723,8 +1010,11 @@
                         const timeDisplay = (event.strTime && event.strTime !== "00:00:00") ? event.strTime.substring(0, 5) : 'A definir';
                         const hotGameClass = isTopEvent ? 'border-2 border-amber-400' : '';
 
+                        const matchContainer = document.createElement('div');
+                        matchContainer.className = 'mb-8';
+
                         const eventCardHtml = `
-                            <div class="relative bg-gray-700 p-4 rounded-lg overflow-hidden ${hotGameClass}" style="${bgImageStyle} background-size: cover; background-position: center;">
+                            <div class="event-card-header relative bg-gray-700 p-4 rounded-lg overflow-hidden cursor-pointer ${hotGameClass}" style="${bgImageStyle} background-size: cover; background-position: center;">
                                 <div class="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm"></div>
                                 <div class="relative z-10">
                                     <p class="text-sm text-indigo-400 font-semibold">${event.strLeague}</p>
@@ -738,7 +1028,14 @@
                                         </button>
                                     </div>
                                 </div>
-                            </div>`;
+                            </div>
+                        `;
+                        matchContainer.innerHTML = eventCardHtml;
+                        matchContainer.querySelector('.event-card-header').addEventListener('click', (e) => {
+                            if (!e.target.closest('.reminder-bell')) {
+                                openMatchDetailsModal(event);
+                            }
+                        });
                         
                         const commentSectionForEvent = document.createElement('div');
                         commentSectionForEvent.className = 'mt-4 pt-4 border-t border-gray-700';
@@ -763,19 +1060,10 @@
                             </div>
                         `;
 
-                        const wrapperDiv = document.createElement('div');
-                        wrapperDiv.className = 'mb-8';
-                        wrapperDiv.innerHTML = eventCardHtml;
-                        wrapperDiv.appendChild(commentSectionForEvent);
-                        detailsContent.appendChild(wrapperDiv);
+                        matchContainer.appendChild(commentSectionForEvent);
+                        detailsContent.appendChild(matchContainer);
 
-                        const commentsListForEvent = document.getElementById(`comments-list-${event.idEvent}`);
-                        const noCommentsMessageForEvent = document.getElementById(`no-comments-message-${event.idEvent}`);
-                        const commentInputAreaForEvent = document.getElementById(`comment-input-area-${event.idEvent}`);
-                        const commentTextareaForEvent = document.getElementById(`comment-text-${event.idEvent}`);
-                        const saveCommentButtonForEvent = document.getElementById(`save-comment-button-${event.idEvent}`);
-                        const commentAuthMessageForEvent = document.getElementById(`comment-auth-message-${event.idEvent}`);
-                        
+                        // Attach listeners for comment section
                         const commentsCollapsibleContent = commentSectionForEvent.querySelector('.comments-collapsible-content');
                         const commentsToggleButton = commentSectionForEvent.querySelector('.comments-toggle-button');
                         const toggleIcon = commentsToggleButton.querySelector('svg');
@@ -784,7 +1072,13 @@
                             commentsCollapsibleContent.classList.toggle('open');
                             toggleIcon.classList.toggle('rotate-180');
                         });
-
+                         const commentsListForEvent = document.getElementById(`comments-list-${event.idEvent}`);
+                        const noCommentsMessageForEvent = document.getElementById(`no-comments-message-${event.idEvent}`);
+                        const commentInputAreaForEvent = document.getElementById(`comment-input-area-${event.idEvent}`);
+                        const commentTextareaForEvent = document.getElementById(`comment-text-${event.idEvent}`);
+                        const saveCommentButtonForEvent = document.getElementById(`save-comment-button-${event.idEvent}`);
+                        const commentAuthMessageForEvent = document.getElementById(`comment-auth-message-${event.idEvent}`);
+                        
                         if (currentUser) {
                             commentInputAreaForEvent.classList.remove('hidden');
                             commentAuthMessageForEvent.classList.add('hidden');
@@ -809,6 +1103,7 @@
                             saveUserComment(currentUser.uid, currentUser.displayName, currentUser.photoURL, event.idEvent, commentText);
                         });
                     });
+
                 } else {
                     detailsContent.innerHTML = '<p>Nenhum evento para este dia com os filtros atuais.</p>';
                 }
@@ -857,29 +1152,32 @@
             onAuthStateChanged(auth, async (user) => {
                 currentUser = user;
                 if (user) {
-                    userInfo.classList.remove('hidden');
+                    userProfileArea.classList.remove('hidden');
                     loginButton.classList.add('hidden');
-                    logoutButton.classList.remove('hidden');
-                    userPhoto.src = user.photoURL || 'https://via.placeholder.com/24/374151/FFFFFF?text=?';
+                    userPhoto.src = user.photoURL || 'https://via.placeholder.com/40/374151/FFFFFF?text=?';
                     userName.textContent = user.displayName || user.email;
-                    authStatus.textContent = "Logado como: " + (user.displayName || user.email);
-                    await loadUserReminders(user.uid);
-                    
-                    const openDate = detailsPanel.dataset.date;
-                    if (openDate) {
-                        showDayDetails(openDate, allEventsData[eventPeriod]);
-                    }
                 } else {
-                    userInfo.classList.add('hidden');
+                    userProfileArea.classList.add('hidden');
                     loginButton.classList.remove('hidden');
-                    logoutButton.classList.add('hidden');
                     userName.textContent = '';
                     userPhoto.src = '';
-                    authStatus.textContent = "Não logado.";
                     savedReminders = [];
                     applyFiltersAndRender();
                 }
             });
+            
+            userPhoto.addEventListener('click', () => {
+                userDropdown.classList.toggle('hidden');
+                userDropdown.classList.toggle('opacity-0');
+                userDropdown.classList.toggle('scale-95');
+            });
+            
+            window.addEventListener('click', (e) => {
+                if (!userProfileArea.contains(e.target)) {
+                    userDropdown.classList.add('hidden', 'opacity-0', 'scale-95');
+                }
+            });
+
 
             // --- INICIALIZAÇÃO GERAL ---
             document.querySelectorAll('input[name="event-period"]').forEach(radio => {
@@ -890,12 +1188,18 @@
                 });
             });
 
-            prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 2); applyFiltersAndRender(); });
-            nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 2); applyFiltersAndRender(); });
+            prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 1); applyFiltersAndRender(); });
+            nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 1); applyFiltersAndRender(); });
             closeDetailsBtn.addEventListener('click', () => detailsPanel.classList.remove('open'));
             sidebarToggleBtn.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
             viewModeSelect.addEventListener('change', applyFiltersAndRender);
             hotGamesToggle.addEventListener('change', applyFiltersAndRender);
+            closeMatchModalBtn.addEventListener('click', closeMatchDetailsModal);
+            matchDetailsModalOverlay.addEventListener('click', (e) => {
+                if (e.target === matchDetailsModalOverlay) {
+                    closeMatchDetailsModal();
+                }
+            });
             
             teamSearchInput.addEventListener('input', () => {
                 const inputValue = teamSearchInput.value.toLowerCase();
@@ -934,12 +1238,19 @@
                     autocompleteResults.classList.add('hidden');
                 }
             });
-
+            
+            document.body.classList.add('loaded');
             populateFilters();
+            const filterItems = document.querySelectorAll('.filter-item, .nav-item');
+            filterItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('visible');
+                }, 100 + (index * 50));
+            });
+
             loadParticles();
             await fetchAllEventsForPeriod();
         });
     </script>
 </body>
 </html>
-�

@@ -5,19 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calendário de Eventos</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- tsParticles for background effects -->
     <script src="https://cdn.jsdelivr.net/npm/tsparticles-slim@2.12.0/tsparticles.slim.bundle.min.js"></script>
     
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #111827; }
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #111827;
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+        }
+        body.loaded {
+            opacity: 1;
+        }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1f2937; }
         ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
@@ -26,56 +31,86 @@
         #sidebar { transition: transform 0.3s ease-in-out, width 0.3s ease-in-out; z-index: 40; }
         #sidebar.collapsed { transform: translateX(-100%); width: 0; padding: 0; }
 
-        /* Novo estilo para o contêiner de partículas do calendário */
         #calendar-background-particles {
             position: absolute;
-            top: 50%; /* Centraliza verticalmente */
-            left: 50%; /* Centraliza horizontalmente */
-            transform: translate(-50%, -50%); /* Ajusta para centralização verdadeira */
-            width: 80%; /* Largura ajustada para o notebook */
-            height: 80%; /* Altura ajustada para o notebook */
-            max-width: 1000px; /* Limita a largura máxima */
-            max-height: 600px; /* Limita a altura máxima */
-            z-index: 0; /* Garante que fique atrás do conteúdo do calendário */
-            border-radius: 50%; /* Opcional: para dar um formato circular ao contêiner de partículas */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            max-width: 1000px;
+            max-height: 600px;
+            z-index: 0;
+            border-radius: 50%;
         }
         
-        .calendar-day { transition: all 0.2s ease-in-out; min-height: 100px; } /* Ajustado min-height */
+        .calendar-day {
+            opacity: 0;
+            transform: scale(0.95) translateY(10px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+            min-height: 100px;
+        }
+        .calendar-day.visible {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
         .calendar-day.has-events { cursor: pointer; background-color: #1f2937; }
         .calendar-day.has-events:hover { transform: scale(1.05); box-shadow: 0 0 15px rgba(79, 70, 229, 0.5); z-index: 10; position: relative; }
         .calendar-day.today { border: 2px solid #4f46e5; }
         
         .event-trail { background-color: rgba(255, 255, 255, 0.1); }
 
+        .filter-item, .nav-item {
+             opacity: 0;
+            transform: translateX(-20px);
+            transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+        }
+        .filter-item.visible, .nav-item.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
         #day-details-panel { transition: transform 0.3s ease-in-out; transform: translateX(100%); z-index: 50; }
         #day-details-panel.open { transform: translateX(0); }
 
-        /* Estilos do Modal de Notificação */
-        #notification-modal-overlay { z-index: 99; }
-        #notification-modal-overlay.hidden { display: none; }
-        #notification-modal { transition: opacity 0.3s ease, transform 0.3s ease; }
+        #notification-modal-overlay, #add-event-modal-overlay { z-index: 99; }
+        #notification-modal-overlay.hidden, #add-event-modal-overlay.hidden { display: none; }
+        #notification-modal, #add-event-modal { transition: opacity 0.3s ease, transform 0.3s ease; }
         .countdown-pulse { animation: pulse-light 2s infinite; }
         @keyframes pulse-light { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
-        /* Estilo do sino de lembrete no painel de detalhes do dia */
         .reminder-bell { color: #4b5563; /* gray-600 */ }
         .reminder-bell.active { color: #facc15; /* yellow-400 */ }
 
-        /* Estilo para o nome do evento no modal (para lembretes) */
-        .event-name-modal.is-reminder { color: #facc15; } /* Cor amarela para o nome do evento quando é lembrete */
+        .event-name-modal.is-reminder { color: #facc15; }
+
+        .dynamic-event-delete-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: rgba(239, 68, 68, 0.7);
+            border-radius: 9999px;
+            padding: 0.25rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .event-card-clickable:hover .dynamic-event-delete-btn {
+            opacity: 1;
+        }
+         #user-dropdown {
+            transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+        }
     </style>
 </head>
 <body class="text-gray-200">
 
-    <!-- Removido: <div id="tsparticles"></div> -->
-
-    <div class="flex h-screen overflow-hidden">
+    <div id="main-content" class="flex h-screen overflow-hidden">
         <aside id="sidebar" class="w-72 bg-gray-900 p-6 flex flex-col space-y-6 overflow-y-auto">
             <h2 class="text-2xl font-bold text-white whitespace-nowrap">Navegação</h2>
             <nav>
                 <ul>
-                    <li><a href="partidas.html" class="block py-2 px-4 rounded-lg hover:bg-gray-700">Calendário de Partidas</a></li>
-                    <li><a href="eventos.html" class="block py-2 px-4 rounded-lg bg-indigo-600 text-white">Eventos</a></li>
+                    <li class="nav-item"><a href="partidas.html" class="block py-2 px-4 rounded-lg hover:bg-gray-700">Calendário de Partidas</a></li>
+                    <li class="nav-item"><a href="eventos.html" class="block py-2 px-4 rounded-lg bg-indigo-600 text-white">Eventos</a></li>
                 </ul>
             </nav>
             <hr class="border-gray-700">
@@ -83,22 +118,41 @@
             <div id="filter-section">
                 <h2 class="text-2xl font-bold text-white whitespace-nowrap mb-4">Filtros</h2>
                 <div id="category-filters" class="space-y-2">
-                    <!-- Botões de rádio para filtros serão inseridos aqui -->
-                </div>
+                    </div>
             </div>
         </aside>
 
-        <!-- ÁREA PRINCIPAL -->
         <main class="flex-1 p-8 overflow-y-auto relative">
             <button id="sidebar-toggle" class="absolute top-6 left-6 z-30 p-2 rounded-full bg-gray-800 hover:bg-gray-700">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
+            <div class="absolute top-6 right-6 z-30 flex items-center gap-4">
+                 <button id="add-event-btn" class="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2" style="visibility: hidden;">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    <span>Adicionar Evento</span>
+                </button>
+                <div id="auth-section" class="relative">
+                    <button id="login-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg hidden whitespace-nowrap">
+                        Login com Google
+                    </button>
+                    <div id="user-profile-area" class="relative hidden">
+                        <img id="user-photo" class="w-10 h-10 rounded-full cursor-pointer border-2 border-transparent hover:border-indigo-500 transition-colors" alt="Foto do utilizador">
+                        <div id="user-dropdown" class="absolute right-0 mt-2 w-56 bg-gray-700 rounded-md shadow-lg py-1 hidden transform opacity-0 scale-95 transition ease-in-out duration-100">
+                            <div class="px-4 py-3 text-sm text-gray-200">
+                                <p class="font-semibold">Logado como:</p>
+                                <p id="user-name" class="truncate"></p>
+                            </div>
+                            <div class="border-t border-gray-600"></div>
+                            <a href="#" id="logout-button" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-600 hover:text-red-300">Sair</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <div class="flex items-center justify-center mb-6">
                 <h1 class="text-3xl font-bold text-white text-center">Calendário de Eventos</h1>
             </div>
             
-            <!-- Novo contêiner para as partículas ao redor do calendário -->
             <div id="calendar-background-particles"></div>
 
             <div id="active-trail-info" class="max-w-3xl mx-auto mb-6 p-3 rounded-lg bg-gray-800 border border-gray-700 items-center justify-between hidden">
@@ -118,19 +172,29 @@
             </div>
             
             <div id="calendars-container" class="relative flex justify-center items-start gap-8">
-                <!-- Botões de navegação reposicionados dentro do calendars-container -->
-                <button id="prev-month" class="absolute top-0 left-0 p-2 rounded-full hover:bg-gray-700 z-10 mt-4 ml-4 text-white">&lt;</button>
-                <button id="next-month" class="absolute top-0 right-0 p-2 rounded-full hover:bg-gray-700 z-10 mt-4 mr-4 text-white">&gt;</button>
-
-                 <div id="next-event-prompt" class="absolute inset-0 flex-col items-center justify-center bg-black bg-opacity-75 hidden z-20 rounded-lg p-8 text-center">
+                <div id="next-event-prompt" class="absolute inset-0 flex-col items-center justify-center bg-black bg-opacity-75 hidden z-20 rounded-lg p-8 text-center">
                     <p id="prompt-title" class="text-2xl font-bold text-white mb-4"></p>
                     <button id="jump-to-event-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg flex items-center transition-transform transform hover:scale-105">
                         <span id="jump-text"></span><span id="jump-date" class="ml-2 font-black"></span>
                     </button>
                 </div>
-                <div id="calendar-1" class="w-full max-w-xl"><h2 id="month-year-header-1" class="text-2xl font-bold text-center mb-4"></h2><div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div><div id="calendar-grid-1" class="grid grid-cols-7 gap-2"></div></div>
+                <div id="calendar-1" class="w-full max-w-xl">
+                     <div class="flex items-center justify-center relative mb-4">
+                        <button id="prev-month" class="absolute left-0 p-2 rounded-full hover:bg-gray-700 text-white z-10">&lt;</button>
+                        <h2 id="month-year-header-1" class="text-2xl font-bold"></h2>
+                    </div>
+                    <div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
+                    <div id="calendar-grid-1" class="grid grid-cols-7 gap-2"></div>
+                </div>
                 <div class="h-auto self-stretch border-l border-gray-700"></div>
-                <div id="calendar-2" class="w-full max-w-xl"><h2 id="month-year-header-2" class="text-2xl font-bold text-center mb-4"></h2><div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div><div id="calendar-grid-2" class="grid grid-cols-7 gap-2"></div></div>
+                <div id="calendar-2" class="w-full max-w-xl">
+                    <div class="flex items-center justify-center relative mb-4">
+                        <h2 id="month-year-header-2" class="text-2xl font-bold"></h2>
+                        <button id="next-month" class="absolute right-0 p-2 rounded-full hover:bg-gray-700 text-white z-10">&gt;</button>
+                    </div>
+                    <div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
+                    <div id="calendar-grid-2" class="grid grid-cols-7 gap-2"></div>
+                </div>
             </div>
         </main>
     </div>
@@ -143,32 +207,84 @@
         <div id="details-content" class="space-y-4"></div>
     </div>
     
-    <!-- Modal de Notificação de Urgência (para eventos próximos) -->
     <div id="notification-modal-overlay" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden">
         <div id="notification-modal" class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg p-8 text-white scale-95 opacity-0">
             <h2 class="text-3xl font-bold text-center mb-2">🔥 Fique de Olho!</h2>
             <p class="text-center text-gray-400 mb-6">Estes eventos importantes estão começando ou terminando em breve.</p>
-            <!-- Mensagem de ação do lembrete no modal -->
             <div id="modal-reminder-action-message" class="text-center text-green-400 mb-4 hidden"></div>
-            <div id="notification-content" class="space-y-4 max-h-80 overflow-y-auto pr-2">
-                <!-- Conteúdo dinâmico aqui -->
-            </div>
+            <div id="notification-content" class="space-y-4 max-h-80 overflow-y-auto pr-2"></div>
             <button id="close-modal-btn" class="w-full mt-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg">Explorar Calendário</button>
+        </div>
+    </div>
+    
+    <div id="add-event-modal-overlay" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden">
+        <div id="add-event-modal" class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg p-8 text-white scale-95 opacity-0 transition-transform">
+             <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Adicionar Novo Evento</h2>
+                <button id="close-add-event-modal" class="p-2 rounded-full hover:bg-gray-700 text-2xl leading-none">&times;</button>
+            </div>
+            <form id="add-event-form" class="space-y-4">
+                <input type="text" id="creator-name" placeholder="Seu Nome (Obrigatório)" required readonly class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-not-allowed">
+                <input type="text" id="event-name" placeholder="Nome do Evento/Partida" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                
+                <select id="event-type" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="Competição">Competição</option>
+                    <option value="Partida">Partida</option>
+                </select>
+
+                <div id="competition-dates" class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="start-date" class="block text-sm font-medium text-gray-400 mb-1">Data de Início</label>
+                        <input type="date" id="start-date" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label for="end-date" class="block text-sm font-medium text-gray-400 mb-1">Data de Fim</label>
+                        <input type="date" id="end-date" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <div id="match-date-container" class="hidden">
+                    <label for="match-date" class="block text-sm font-medium text-gray-400 mb-1">Data da Partida</label>
+                    <input type="date" id="match-date" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+
+                <select id="event-category" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </select>
+                <input type="text" id="event-league" placeholder="Campeonato (se for partida)" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hidden">
+                <textarea id="event-details" placeholder="Detalhes do evento..." rows="3" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg">Salvar Evento</button>
+            </form>
         </div>
     </div>
 
 
-    <script>
-        document.addEventListener('DOMContentLoaded', async () => { // Changed to async
-            // --- ELEMENTOS DO DOM ---
+    <script type="module">
+        // Import Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js"; 
+        import { getFirestore, collection, onSnapshot, addDoc, doc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        
+        // Sua configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBGZGzl-vbVAT8lZn--v3cuTYtAs-fy2Os",
+            authDomain: "calendario-eventos-1c3d0.firebaseapp.com",
+            projectId: "calendario-eventos-1c3d0",
+            storageBucket: "calendario-eventos-1c3d0.appspot.com",
+            messagingSenderId: "251278696788",
+            appId: "1:251278696788:web:968b9d906918f5fb4228c1"
+        };
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAmcjEF6zLt_QpiV7Jby-4GcPv9oAnMqv9Ed_JnBJBSCYMMBpyd_hUeBMlUBTAeX8Ruw/exec';
+
+        // Inicializa o Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const dynamicEventsCollection = collection(db, 'dynamic_events');
+
+        document.addEventListener('DOMContentLoaded', async () => { 
             const sidebar = document.getElementById('sidebar');
             const sidebarToggleBtn = document.getElementById('sidebar-toggle');
             const categoryFiltersContainer = document.getElementById('category-filters');
-            const nextEventPrompt = document.getElementById('next-event-prompt');
-            const promptTitleEl = document.getElementById('prompt-title');
-            const jumpToEventBtn = document.getElementById('jump-to-event-btn');
-            const jumpTextEl = document.getElementById('jump-text');
-            const jumpDateEl = document.getElementById('jump-date');
             const prevMonthBtn = document.getElementById('prev-month');
             const nextMonthBtn = document.getElementById('next-month');
             const detailsPanel = document.getElementById('day-details-panel');
@@ -180,49 +296,126 @@
             const trailEventCategoryEl = document.getElementById('trail-event-category');
             const trailEventDatesEl = document.getElementById('trail-event-dates');
             const clearTrailBtn = document.getElementById('clear-trail-btn');
+            const addEventBtn = document.getElementById('add-event-btn');
+            const addEventModalOverlay = document.getElementById('add-event-modal-overlay');
+            const addEventModal = document.getElementById('add-event-modal');
+            const closeAddEventModalBtn = document.getElementById('close-add-event-modal');
+            const addEventForm = document.getElementById('add-event-form');
+            const eventTypeSelect = document.getElementById('event-type');
+            const eventLeagueInput = document.getElementById('event-league');
+            const eventCategorySelect = document.getElementById('event-category');
+            const competitionDatesContainer = document.getElementById('competition-dates');
+            const matchDateContainer = document.getElementById('match-date-container');
+            const startDateInput = document.getElementById('start-date');
+            const endDateInput = document.getElementById('end-date');
+            const matchDateInput = document.getElementById('match-date');
+            const creatorNameInput = document.getElementById('creator-name');
+            const loginButton = document.getElementById('login-button');
+            const logoutButton = document.getElementById('logout-button');
+            const userProfileArea = document.getElementById('user-profile-area');
+            const userPhoto = document.getElementById('user-photo');
+            const userName = document.getElementById('user-name');
+            const userDropdown = document.getElementById('user-dropdown');
             const notificationModalOverlay = document.getElementById('notification-modal-overlay');
-            const notificationModal = document.getElementById('notification-modal');
-            const notificationContent = document.getElementById('notification-content');
             const closeModalBtn = document.getElementById('close-modal-btn');
+            const notificationContent = document.getElementById('notification-content');
             const modalReminderActionMessage = document.getElementById('modal-reminder-action-message');
-
-
-            // --- DADOS E CONFIGURAÇÕES ---
+            const nextEventPrompt = document.getElementById('next-event-prompt');
+            const promptTitleEl = document.getElementById('prompt-title');
+            const jumpToEventBtn = document.getElementById('jump-to-event-btn');
+            const jumpTextEl = document.getElementById('jump-text');
+            const jumpDateEl = document.getElementById('jump-date');
+            
             const sportConfigs = {
-                'Futebol': { particleColor: '#22c55e' }, 'Basquete': { particleColor: '#f97316' }, 'Tênis': { particleColor: '#eab308' }, 'Outros Esportes': { particleColor: '#0ea5e9' }, 'eSports': { particleColor: '#a855f7' }
+                'Futebol': { particleColor: '#22c55e', color: 'bg-green-500' }, 
+                'Basquete': { particleColor: '#f97316', color: 'bg-orange-500' }, 
+                'Tênis': { particleColor: '#eab308', color: 'bg-yellow-500' }, 
+                'Outros Esportes': { particleColor: '#0ea5e9', color: 'bg-sky-500' }, 
+                'eSports': { particleColor: '#a855f7', color: 'bg-purple-500' }
             };
 
-            // Fetch data from external JSON file
-            let allEventsData = [];
+            let staticEvents = [];
+            let dynamicEvents = []; 
+            let currentUser = null;
+
             try {
-                const response = await fetch('eventos.json'); // Path to your JSON file
+                const response = await fetch('./eventos.json');
                 const data = await response.json();
-                allEventsData = data.eventos;
+                staticEvents = data.eventos;
             } catch (error) {
                 console.error('Erro ao carregar dados dos eventos:', error);
-                // Fallback to empty array or a default static data if needed
             }
             
-            // --- ESTADO DA APLICAÇÃO ---
             let currentDate = new Date();
-            let allEvents = allEventsData; // Use fetched data
-            // Carrega lembretes salvos do localStorage
+            let allEvents = [];
             let savedReminders = JSON.parse(localStorage.getItem('eventReminders')) || []; 
             let activeTrail = null; 
             let countdownIntervals = [];
 
-            // --- FUNÇÕES ---
+            const updateAllEvents = () => {
+                allEvents = [...staticEvents, ...dynamicEvents];
+                applyFilters();
+            };
 
-            // Gera um ID único para cada evento com base no nome, data de início e data de fim
-            const getEventUniqueId = (event) => `${event.nome}_${event.data_inicio}_${event.data_fim}`;
+            const listenForDynamicEvents = () => {
+                onSnapshot(dynamicEventsCollection, (snapshot) => {
+                    dynamicEvents = snapshot.docs.map(doc => ({...doc.data(), id: doc.id, isDynamic: true}));
+                    updateAllEvents();
+                });
+            };
+            
+            const saveDynamicEvent = async (eventData) => {
+                try {
+                    await addDoc(dynamicEventsCollection, eventData);
+                    const sheetData = {
+                        creatorName: eventData.creatorName,
+                        eventName: eventData.nome,
+                        startDate: eventData.data_inicio,
+                        endDate: eventData.data_fim,
+                        eventType: eventData.tipo,
+                        eventCategory: eventData.categoria,
+                        eventLeague: eventData.campeonato || '',
+                        eventDetails: eventData.descricao
+                    };
+
+                    await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(sheetData)
+                    });
+                    alert('Evento adicionado com sucesso!');
+                } catch (error) {
+                    console.error("Erro ao salvar evento:", error);
+                    alert("Ocorreu um erro ao salvar o evento.");
+                }
+            };
+            
+            const deleteDynamicEvent = async (eventId) => {
+                try {
+                    const eventRef = doc(db, 'dynamic_events', eventId);
+                    await deleteDoc(eventRef);
+                } catch (error) {
+                    console.error("Erro ao excluir evento:", error);
+                    alert("Ocorreu um erro ao excluir o evento.");
+                }
+            };
+            
+
+            const getEventUniqueId = (event) => {
+                if(event.id) return event.id;
+                return `${event.nome}_${event.data_inicio}_${event.data_fim}`;
+            }
 
             const parseDate = (str) => {
+                if (!str) return NaN;
                 const [year, month, day] = str.split('-').map(Number);
                 return new Date(Date.UTC(year, month - 1, day));
             };
 
             const formatDisplayDate = (dateStr) => {
                 const date = parseDate(dateStr);
+                if (isNaN(date)) return "Data inválida";
                 const day = String(date.getUTCDate()).padStart(2, '0');
                 const month = String(date.getUTCMonth() + 1).padStart(2, '0');
                 const year = date.getUTCFullYear();
@@ -230,46 +423,16 @@
             };
             
             async function loadParticles(colors = ["#ffffff"]) {
-                await tsParticles.load("calendar-background-particles", { // Target the new div
+                await tsParticles.load("calendar-background-particles", { 
                     fpsLimit: 60,
-                    particles: {
-                        number: { value: 30, density: { enable: true, value_area: 400 } }, // Reduced number and density
-                        color: { value: colors },
-                        shape: { type: "circle" },
-                        opacity: { value: 0.3, random: true }, // Slightly less opaque
-                        size: { value: 2, random: { enable: true, minimumValue: 1 } }, // Smaller particles
-                        move: {
-                            enable: true,
-                            speed: 0.5, // Slower movement
-                            direction: "none",
-                            random: true,
-                            straight: false,
-                            out_mode: "bounce", // Keep them within the container
-                            bounce: true
-                        },
-                        links: { enable: true, distance: 100, color: "#ffffff", opacity: 0.1, width: 1 } // Shorter links, less opaque
-                    },
-                    interactivity: {
-                        events: {
-                            onHover: { enable: true, mode: "grab" },
-                            onClick: { enable: true, mode: "push" }
-                        },
-                        modes: {
-                            grab: { distance: 100, links: { opacity: 0.2 } }, // Reduced grab distance
-                            push: { quantity: 1 } // Push fewer particles
-                        }
-                    },
-                    detectRetina: true
+                    particles: { number: { value: 30 }, color: { value: colors }, shape: { type: "circle" }, opacity: { value: 0.3, random: true }, size: { value: 2, random: { enable: true, minimumValue: 1 } }, move: { enable: true, speed: 0.5, direction: "none", random: true, straight: false, out_mode: "bounce", bounce: true }, links: { enable: true, distance: 100, color: "#ffffff", opacity: 0.1, width: 1 } },
+                    interactivity: { events: { onHover: { enable: true, mode: "grab" }, onClick: { enable: true, mode: "push" } }, modes: { grab: { distance: 100 }, push: { quantity: 1 } } },
                 });
             }
 
             const clearActiveTrail = () => {
                 if (!activeTrail) return;
-                
-                document.querySelectorAll('.calendar-day').forEach(day => {
-                    day.classList.remove(...activeTrail.trailClasses);
-                });
-                
+                document.querySelectorAll('.calendar-day').forEach(day => day.classList.remove(...activeTrail.trailClasses));
                 activeTrail = null;
                 activeTrailInfoPanel.classList.add('hidden');
                 activeTrailInfoPanel.classList.remove('flex');
@@ -277,21 +440,16 @@
 
             const drawActiveTrailOnDOM = () => {
                 if (!activeTrail) return;
-
                 const start = parseDate(activeTrail.start);
                 const end = parseDate(activeTrail.end);
                 if (isNaN(start) || isNaN(end)) return;
-
                 let currentDay = new Date(start);
                 while (currentDay <= end) {
                     const dateStr = `${currentDay.getUTCFullYear()}-${String(currentDay.getUTCMonth() + 1).padStart(2, '0')}-${String(currentDay.getUTCDate()).padStart(2, '0')}`;
                     const dayEl = document.querySelector(`[data-date='${dateStr}']`);
-                    if (dayEl) {
-                        dayEl.classList.add(...activeTrail.trailClasses);
-                    }
+                    if (dayEl) dayEl.classList.add(...activeTrail.trailClasses);
                     currentDay.setUTCDate(currentDay.getUTCDate() + 1);
                 }
-                
                 trailEventNameEl.textContent = activeTrail.name;
                 trailEventCategoryEl.textContent = activeTrail.category;
                 trailEventDatesEl.textContent = `${formatDisplayDate(activeTrail.start)} - ${formatDisplayDate(activeTrail.end)}`;
@@ -321,11 +479,15 @@
                     dayEl.dataset.date = dateStr;
                     dayEl.className = 'calendar-day border border-gray-700 rounded-lg p-2 flex flex-col';
                     
-                    const eventsOnDay = events.filter(e => e.data_inicio === dateStr || e.data_fim === dateStr);
-                    const eventsStartingOnDay = events.filter(e => e.data_inicio === dateStr);
-                    const eventsEndingOnDay = events.filter(e => e.data_fim === dateStr && e.data_inicio !== e.data_fim);
+                    const eventsOnDay = events.filter(e => {
+                        const start = parseDate(e.data_inicio);
+                        const end = parseDate(e.data_fim);
+                        const current = parseDate(dateStr);
+                        return current >= start && current <= end;
+                    });
+                    const eventsStartingOnDay = eventsOnDay.filter(e => e.data_inicio === dateStr);
+                    const eventsEndingOnDay = eventsOnDay.filter(e => e.data_fim === dateStr && e.data_inicio !== e.data_fim);
 
-                    // Verifica se há algum lembrete para este dia
                     const hasReminderOnDay = eventsOnDay.some(event => savedReminders.includes(getEventUniqueId(event)));
                     
                     dayEl.innerHTML = `<div class="flex justify-between items-center">
@@ -341,14 +503,15 @@
                         indicators.className = 'flex flex-col space-y-1 overflow-hidden text-xs';
                         
                         eventsStartingOnDay.slice(0, 2).forEach(event => {
-                             indicators.innerHTML += `<div class="flex items-center gap-1.5 p-1 rounded-md ${event.cor} bg-opacity-30" title="${event.nome}"><div class="w-2 h-2 rounded-full ${event.cor} flex-shrink-0"></div><span class="truncate text-white font-medium">Início: ${event.nome}</span></div>`;
+                             const color = sportConfigs[event.categoria]?.color || 'bg-gray-500';
+                             indicators.innerHTML += `<div class="flex items-center gap-1.5 p-1 rounded-md ${color} bg-opacity-30" title="${event.nome}"><div class="w-2 h-2 rounded-full ${color} flex-shrink-0"></div><span class="truncate text-white font-medium">Início: ${event.nome}</span></div>`;
                         });
                         eventsEndingOnDay.slice(0, 2).forEach(event => {
                              indicators.innerHTML += `<div class="flex items-center gap-1.5 p-1 rounded-md bg-gray-600" title="${event.nome}"><div class="w-2 h-2 rounded-full bg-gray-400 flex-shrink-0"></div><span class="truncate text-gray-300 font-medium">Fim: ${event.nome}</span></div>`;
                         });
                         
                         dayEl.appendChild(indicators);
-                        dayEl.addEventListener('click', () => showDayDetails(dateStr, events));
+                        dayEl.addEventListener('click', () => showDayDetails(dateStr, allEvents));
                     }
                     
                     const today = new Date();
@@ -367,42 +530,34 @@
                 renderSingleCalendar('calendar-grid-1', 'month-year-header-1', month1, events);
                 renderSingleCalendar('calendar-grid-2', 'month-year-header-2', date2, events);
                 drawActiveTrailOnDOM();
+
+                const dayElements = document.querySelectorAll('.calendar-day');
+                dayElements.forEach((el, i) => {
+                    setTimeout(() => {
+                        el.classList.add('visible');
+                    }, i * 15); 
+                });
             }
 
-            // Função para alternar o lembrete de um evento
             const toggleReminder = (eventData) => {
                 const eventUniqueId = getEventUniqueId(eventData);
                 const reminderIndex = savedReminders.indexOf(eventUniqueId);
-                let message = "";
                 if (reminderIndex > -1) {
-                    savedReminders.splice(reminderIndex, 1); // Remove o lembrete
-                    message = `"${eventData.nome}" desmarcado dos lembretes.`;
+                    savedReminders.splice(reminderIndex, 1);
                 } else {
-                    savedReminders.push(eventUniqueId); // Adiciona o lembrete
-                    message = `"${eventData.nome}" marcado em Meus Lembretes.`;
+                    savedReminders.push(eventUniqueId);
                 }
-                localStorage.setItem('eventReminders', JSON.stringify(savedReminders)); // Salva no localStorage
+                localStorage.setItem('eventReminders', JSON.stringify(savedReminders));
                 
-                // Exibe a mensagem de ação no modal
-                modalReminderActionMessage.textContent = message;
-                modalReminderActionMessage.classList.remove('hidden', 'text-green-400', 'text-red-400');
-                modalReminderActionMessage.classList.add(reminderIndex > -1 ? 'text-red-400' : 'text-green-400');
-
-                setTimeout(() => {
-                    modalReminderActionMessage.classList.add('hidden');
-                }, 3000); // Esconde a mensagem após 3 segundos
-
-
-                // Re-renderiza o painel de detalhes para atualizar o estado do sino
                 const openDate = detailsPanel.dataset.date;
                 if (openDate) {
-                    showDayDetails(openDate, allEvents); // Usa allEvents para garantir que todos os eventos sejam considerados para re-renderização
+                    showDayDetails(openDate, allEvents);
                 }
-                applyFilters(); // Re-aplica filtros para atualizar o calendário
+                applyFilters();
             };
 
             const showDayDetails = (dateStr, events) => {
-                detailsPanel.dataset.date = dateStr; // Salva a data atualmente aberta
+                detailsPanel.dataset.date = dateStr;
                 const date = parseDate(dateStr);
                 detailsTitle.textContent = `Eventos de ${date.toLocaleDateString('pt-BR', { timeZone: 'UTC', dateStyle: 'full' })}`;
                 
@@ -411,26 +566,28 @@
                 let contentHtml = '';
                 if (eventsOnDay.length > 0) {
                      eventsOnDay.forEach(event => {
+                        const color = sportConfigs[event.categoria]?.color || 'bg-gray-500';
                         let statusTag = '';
                         if (event.data_inicio === dateStr) {
-                            statusTag = event.data_inicio === event.data_fim ? `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${event.cor} text-white bg-opacity-80">Evento Único</span>` : `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${event.cor} text-white bg-opacity-80">Início do Evento</span>`;
+                            statusTag = event.data_inicio === event.data_fim ? `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${color} text-white bg-opacity-80">Evento Único</span>` : `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${color} text-white bg-opacity-80">Início do Evento</span>`;
                         } else if (event.data_fim === dateStr) {
                             statusTag = `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-gray-200 bg-gray-600">Fim do Evento</span>`;
                         }
 
-                        // Verifica se o evento está marcado como lembrete
                         const isReminderSet = savedReminders.includes(getEventUniqueId(event));
+                        const canDelete = event.isDynamic && currentUser && event.creatorId === currentUser.uid;
 
                         contentHtml += `
                             <div class="flex items-center space-x-3 mb-4">
-                                <div class="event-card-clickable flex-1 bg-gray-700 p-4 rounded-lg cursor-pointer transition-colors hover:bg-gray-600" 
-                                    data-name="${event.nome}" data-category="${event.categoria}" data-start="${event.data_inicio}" data-end="${event.data_fim}" data-color="${event.cor}" data-event-unique-id="${getEventUniqueId(event)}">
+                                <div class="event-card-clickable relative flex-1 bg-gray-700 p-4 rounded-lg cursor-pointer transition-colors hover:bg-gray-600" 
+                                    data-name="${event.nome}" data-category="${event.categoria}" data-start="${event.data_inicio}" data-end="${event.data_fim}" data-color="${color}" data-event-unique-id="${getEventUniqueId(event)}">
                                     <div class="flex justify-between items-start mb-2">
                                         <h3 class="text-lg font-bold text-white flex-1 pr-2">${event.nome}</h3>
                                         ${statusTag}
                                     </div>
                                     <p class="text-sm text-indigo-400 font-semibold">${event.categoria}</p>
                                     <p class="text-sm text-gray-300 mt-2">${event.descricao}</p>
+                                    ${canDelete ? `<button class="dynamic-event-delete-btn" data-id="${event.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>` : ''}
                                 </div>
                                 <button class="reminder-bell ${isReminderSet ? 'active' : ''} p-2 rounded-full hover:bg-gray-600 flex-shrink-0" data-event-unique-id="${getEventUniqueId(event)}" title="Ativar/Desativar lembrete">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22a2.98 2.98 0 002.818-2H9.182A2.98 2.98 0 0012 22zm7-7v-5.273A6.994 6.994 0 0013 2.127V2a1 1 0 00-2 0v.127A6.994 6.994 0 005 9.727V15l-2 2v1h18v-1l-2-2z"/></svg>
@@ -446,8 +603,7 @@
 
                 detailsContent.querySelectorAll('.event-card-clickable').forEach(card => {
                     card.addEventListener('click', (e) => {
-                        // Certifica-se de que o clique no sino não ativa o trail
-                        if (e.target.closest('.reminder-bell')) {
+                        if (e.target.closest('.reminder-bell') || e.target.closest('.dynamic-event-delete-btn')) {
                             return;
                         }
                         clearActiveTrail(); 
@@ -462,10 +618,9 @@
                     });
                 });
 
-                // Adiciona listeners para os botões de sino
                 detailsContent.querySelectorAll('.reminder-bell').forEach(bell => {
                     bell.addEventListener('click', (e) => {
-                        e.stopPropagation(); // Evita que o clique do sino propague para o card pai
+                        e.stopPropagation();
                         const eventUniqueId = e.currentTarget.dataset.eventUniqueId;
                         const eventData = allEvents.find(e => getEventUniqueId(e) === eventUniqueId);
                         if (eventData) {
@@ -473,32 +628,42 @@
                         }
                     });
                 });
+
+                detailsContent.querySelectorAll('.dynamic-event-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        if (confirm('Tem certeza que deseja excluir este evento?')) {
+                           deleteDynamicEvent(btn.dataset.id);
+                        }
+                    });
+                });
             };
 
             const populateFilters = () => {
-                const categories = [...new Set(allEvents.map(e => e.categoria))];
+                const categories = Object.keys(sportConfigs);
                 let filterHtml = `
-                    <label class="flex items-center space-x-2 cursor-pointer">
+                    <label class="flex items-center space-x-2 cursor-pointer filter-item">
                         <input type="radio" name="category" value="Todos" class="category-filter bg-gray-700 border-gray-600 rounded-full text-indigo-500 focus:ring-indigo-500" checked>
                         <span>Todos</span>
                     </label>`;
                 
-                // Adiciona o filtro de Lembretes
                 filterHtml += `
-                    <label class="flex items-center space-x-2 cursor-pointer">
+                    <label class="flex items-center space-x-2 cursor-pointer filter-item">
                         <input type="radio" name="category" value="Lembretes" class="category-filter bg-gray-700 border-gray-600 rounded-full text-yellow-400 focus:ring-yellow-400">
                         <span>Meus Lembretes 🔔</span>
                     </label>`;
 
                 categories.forEach(cat => {
                     filterHtml += `
-                        <label class="flex items-center space-x-2 cursor-pointer">
+                        <label class="flex items-center space-x-2 cursor-pointer filter-item">
                             <input type="radio" name="category" value="${cat}" class="category-filter bg-gray-700 border-gray-600 rounded-full text-indigo-500 focus:ring-indigo-500">
                             <span>${cat}</span>
                         </label>`;
                 });
                 
                 categoryFiltersContainer.innerHTML = filterHtml;
+                eventCategorySelect.innerHTML = categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+
 
                 document.querySelectorAll('.category-filter').forEach(radio => {
                     radio.addEventListener('change', () => {
@@ -509,6 +674,8 @@
             };
             
             const checkAndShowJumpPrompt = (filteredEvents) => {
+                const nextEventPrompt = document.getElementById('next-event-prompt');
+                if(!nextEventPrompt) return;
                 nextEventPrompt.classList.add('hidden');
                 
                 const viewStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
@@ -528,12 +695,12 @@
                 
                 if (nextFutureEvent) {
                     const nextEventDate = parseDate(nextFutureEvent.data_inicio);
-                    promptTitleEl.textContent = 'Nenhum evento na visualização atual';
-                    jumpTextEl.textContent = 'Ir para o próximo evento em';
-                    jumpDateEl.textContent = nextEventDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+                    document.getElementById('prompt-title').textContent = 'Nenhum evento na visualização atual';
+                    document.getElementById('jump-text').textContent = 'Ir para o próximo evento em';
+                    document.getElementById('jump-date').textContent = nextEventDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
                     nextEventPrompt.classList.remove('hidden');
                     nextEventPrompt.classList.add('flex');
-                    jumpToEventBtn.onclick = () => {
+                    document.getElementById('jump-to-event-btn').onclick = () => {
                         currentDate = new Date(nextEventDate.getUTCFullYear(), nextEventDate.getUTCMonth(), 1);
                         applyFilters();
                     };
@@ -546,12 +713,12 @@
 
                 if (lastPastEvent) {
                     const lastEventDate = parseDate(lastPastEvent.data_inicio);
-                    promptTitleEl.textContent = 'Eventos já encerrados';
-                    jumpTextEl.textContent = 'Clique para visualizar o último em';
-                    jumpDateEl.textContent = lastEventDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
+                    document.getElementById('prompt-title').textContent = 'Eventos já encerrados';
+                    document.getElementById('jump-text').textContent = 'Clique para visualizar o último em';
+                    document.getElementById('jump-date').textContent = lastEventDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
                     nextEventPrompt.classList.remove('hidden');
                     nextEventPrompt.classList.add('flex');
-                    jumpToEventBtn.onclick = () => {
+                    document.getElementById('jump-to-event-btn').onclick = () => {
                         currentDate = new Date(lastEventDate.getUTCFullYear(), lastEventDate.getUTCMonth(), 1);
                         applyFilters();
                     };
@@ -559,10 +726,11 @@
             };
             
             const showUrgencyModal = (milestones) => {
-                countdownIntervals.forEach(clearInterval); // Limpa contadores antigos
-                countdownIntervals = [];
+                 const notificationContent = document.getElementById('notification-content');
+                 const notificationModalOverlay = document.getElementById('notification-modal-overlay');
+                 if(!notificationContent || !notificationModalOverlay) return;
 
-                notificationContent.innerHTML = ''; // Limpa conteúdo anterior
+                notificationContent.innerHTML = '';
                 
                 const groupedByDate = milestones.reduce((acc, m) => {
                     const dateKey = m.date.toISOString().split('T')[0];
@@ -585,7 +753,6 @@
                     let groupHtml = `<div class="mb-3"><p class="font-bold text-indigo-400 mb-2">${dateLabel}</p><div class="space-y-2">`;
                     
                     items.forEach((item, index) => {
-                        // Encontra o evento completo para verificar se é lembrete
                         const eventData = allEvents.find(e => getEventUniqueId(e) === item.eventUniqueId);
                         const isReminderSet = eventData && savedReminders.includes(getEventUniqueId(eventData));
 
@@ -596,60 +763,15 @@
                                 <p><span class="font-semibold">${item.type}:</span> <span class="event-name-modal ${isReminderSet ? 'is-reminder' : ''}">${item.name}</span></p>
                                 <p id="${countdownId}" class="text-xs text-amber-400 countdown-pulse mt-1"></p>
                             </div>
-                            <!-- O sino foi removido daqui conforme solicitado -->
                         </div>`;
                     });
 
                     groupHtml += `</div></div>`;
                     notificationContent.innerHTML += groupHtml;
-
-                    // Adiciona os contadores
-                    items.forEach((item, index) => {
-                        const countdownEl = document.getElementById(`countdown-${dateKey}-${index}`);
-                        const targetTime = new Date(`${dateKey}T23:59:59`); // Fim do dia do evento
-                        
-                        const updateCountdown = () => {
-                            const diff = targetTime.getTime() - new Date().getTime();
-                            if(diff <= 0) {
-                                countdownEl.textContent = "Finalizado";
-                                return;
-                            }
-                            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-                            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                            const s = Math.floor((diff % (1000 * 60)) / 1000);
-                            
-                            countdownEl.textContent = d > 0 ? `${item.type === 'Início' ? 'Começa' : 'Termina'} em ${d}d ${h}h ${m}m` : `Termina em: ${h}h ${m}m ${s}s`;
-                        };
-                        updateCountdown();
-                        if (targetTime.getTime() > new Date().getTime()) {
-                             countdownIntervals.push(setInterval(updateCountdown, 1000));
-                        }
-                    });
                 }
 
                 notificationModalOverlay.classList.remove('hidden');
-                setTimeout(() => notificationModal.classList.remove('scale-95', 'opacity-0'), 10);
-
-                // Adiciona listeners para os itens clicáveis no modal
-                notificationContent.querySelectorAll('.modal-event-item-clickable').forEach(itemEl => {
-                    itemEl.addEventListener('click', () => {
-                        const eventUniqueId = itemEl.dataset.eventUniqueId;
-                        const eventData = allEvents.find(ev => getEventUniqueId(ev) === eventUniqueId);
-                        if (eventData) {
-                            toggleReminder(eventData);
-                            // Atualiza o feedback visual no nome do evento no modal
-                            const eventNameSpan = itemEl.querySelector('.event-name-modal');
-                            if (eventNameSpan) {
-                                if (savedReminders.includes(eventUniqueId)) {
-                                    eventNameSpan.classList.add('is-reminder');
-                                } else {
-                                    eventNameSpan.classList.remove('is-reminder');
-                                }
-                            }
-                        }
-                    });
-                });
+                setTimeout(() => document.getElementById('notification-modal').classList.remove('scale-95', 'opacity-0'), 10);
             };
 
             const checkAndNotifyUpcomingEvents = () => {
@@ -662,13 +784,14 @@
 
                 allEvents.forEach(event => {
                     const startDate = parseDate(event.data_inicio);
-                    const endDate = parseDate(event.data_fim);
-
                     if (startDate >= today && startDate <= twoMonthsLater) {
                         upcomingEventsForModal.push({ date: startDate, type: 'Início', name: event.nome, eventUniqueId: getEventUniqueId(event) });
                     }
-                    if (endDate >= today && endDate <= twoMonthsLater && event.data_inicio !== event.data_fim) {
-                        upcomingEventsForModal.push({ date: endDate, type: 'Fim', name: event.nome, eventUniqueId: getEventUniqueId(event) });
+                    if (event.data_inicio !== event.data_fim) {
+                        const endDate = parseDate(event.data_fim);
+                        if (endDate >= today && endDate <= twoMonthsLater) {
+                             upcomingEventsForModal.push({ date: endDate, type: 'Fim', name: event.nome, eventUniqueId: getEventUniqueId(event) });
+                        }
                     }
                 });
                 
@@ -679,7 +802,10 @@
             };
 
             const applyFilters = () => {
-                const selectedCategory = document.querySelector('.category-filter:checked').value;
+                const selectedCategoryRadio = document.querySelector('.category-filter:checked');
+                if(!selectedCategoryRadio) return;
+                const selectedCategory = selectedCategoryRadio.value;
+                allEvents = [...staticEvents, ...dynamicEvents];
                 let filteredEvents = [];
 
                 if (selectedCategory === 'Todos') {
@@ -688,7 +814,7 @@
                     loadParticles(allColors);
                 } else if (selectedCategory === 'Lembretes') {
                     filteredEvents = allEvents.filter(event => savedReminders.includes(getEventUniqueId(event)));
-                    loadParticles(['#facc15']); // Cor amarela para lembretes
+                    loadParticles(['#facc15']); 
                 } 
                 else {
                     filteredEvents = allEvents.filter(event => event.categoria === selectedCategory);
@@ -700,37 +826,146 @@
                 checkAndShowJumpPrompt(filteredEvents);
             };
 
-            const initialize = () => {
-                allEvents = allEventsData; // Ensure allEvents is populated correctly
+            const initializeApp = () => {
+                document.body.classList.add('loaded');
+                listenForDynamicEvents();
                 populateFilters();
+                const filterItems = document.querySelectorAll('.filter-item, .nav-item');
+                filterItems.forEach((item, index) => {
+                    setTimeout(() => {
+                        item.classList.add('visible');
+                    }, 100 + (index * 50));
+                });
                 applyFilters();
                 setTimeout(checkAndNotifyUpcomingEvents, 1500); 
             };
 
             const closeModal = () => {
-                notificationModal.classList.add('scale-95', 'opacity-0');
-                setTimeout(() => notificationModalOverlay.classList.add('hidden'), 300);
-                countdownIntervals.forEach(clearInterval);
+                const modalOverlay = document.getElementById('notification-modal-overlay');
+                if (modalOverlay) {
+                    modalOverlay.classList.add('hidden');
+                }
             };
 
-            // --- EVENT LISTENERS ---
+            const openAddEventModal = () => {
+                if (!currentUser) {
+                    alert("Você precisa estar logado para adicionar um evento.");
+                    return;
+                }
+                creatorNameInput.value = currentUser.displayName;
+                addEventModalOverlay.classList.remove('hidden');
+                setTimeout(() => addEventModal.classList.remove('scale-95', 'opacity-0'), 10);
+            }
+
+            const closeAddEventModal = () => {
+                addEventModal.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => addEventModalOverlay.classList.add('hidden'), 300);
+            }
+
+            addEventForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const eventType = eventTypeSelect.value;
+                let startDate, endDate;
+
+                if (eventType === 'Partida') {
+                    startDate = matchDateInput.value;
+                    endDate = startDate;
+                } else {
+                    startDate = startDateInput.value;
+                    endDate = endDateInput.value;
+                }
+
+                if (!startDate) {
+                    alert("Por favor, selecione uma data.");
+                    return;
+                }
+                
+                const eventData = {
+                    creatorName: creatorNameInput.value,
+                    nome: document.getElementById('event-name').value,
+                    data_inicio: startDate,
+                    data_fim: endDate,
+                    tipo: eventType,
+                    categoria: eventCategorySelect.value,
+                    campeonato: eventLeagueInput.value,
+                    descricao: document.getElementById('event-details').value,
+                    creatorId: currentUser.uid, 
+                    createdAt: serverTimestamp()
+                };
+
+                saveDynamicEvent(eventData);
+                addEventForm.reset();
+                closeAddEventModal();
+            });
+
+            eventTypeSelect.addEventListener('change', () => {
+                const isMatch = eventTypeSelect.value === 'Partida';
+                eventLeagueInput.classList.toggle('hidden', !isMatch);
+                competitionDatesContainer.classList.toggle('hidden', isMatch);
+                matchDateContainer.classList.toggle('hidden', !isMatch);
+                
+                startDateInput.required = !isMatch;
+                endDateInput.required = !isMatch;
+                matchDateInput.required = isMatch;
+            });
+
+
+            // --- AUTH EVENT LISTENERS ---
+             onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (user) {
+                    userProfileArea.classList.remove('hidden');
+                    loginButton.classList.add('hidden');
+                    addEventBtn.style.visibility = 'visible';
+                    userPhoto.src = user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=374151&color=fff`;
+                    userName.textContent = user.displayName || user.email;
+                } else {
+                    userProfileArea.classList.add('hidden');
+                    loginButton.classList.remove('hidden');
+                     addEventBtn.style.visibility = 'hidden';
+                    userName.textContent = '';
+                    userPhoto.src = '';
+                }
+                updateAllEvents(); // Re-render to show/hide delete buttons
+            });
+
+            loginButton.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()));
+            logoutButton.addEventListener('click', () => signOut(auth));
+            
+            userPhoto.addEventListener('click', () => {
+                userDropdown.classList.toggle('hidden');
+                userDropdown.classList.toggle('opacity-0');
+                userDropdown.classList.toggle('scale-95');
+            });
+
+            window.addEventListener('click', (e) => {
+                if (userProfileArea && !userProfileArea.contains(e.target)) {
+                    userDropdown.classList.add('hidden', 'opacity-0', 'scale-95');
+                }
+            });
+
+            // --- GENERAL EVENT LISTENERS ---
             sidebarToggleBtn.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
             closeDetailsBtn.addEventListener('click', () => detailsPanel.classList.remove('open'));
             clearTrailBtn.addEventListener('click', clearActiveTrail);
-            closeModalBtn.addEventListener('click', closeModal);
-            notificationModalOverlay.addEventListener('click', (e) => { if(e.target === notificationModalOverlay) closeModal(); });
             
-            // Removido botões de navegação de mês do cabeçalho
-            // prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 2); applyFilters(); });
-            // nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 2); applyFilters(); });
+            const notificationModalOverlayElem = document.getElementById('notification-modal-overlay');
+            const closeModalBtnElem = document.getElementById('close-modal-btn');
             
-            // Adicionado listeners para os botões de navegação de mês reposicionados
-            document.getElementById('prev-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 2); applyFilters(); });
-            document.getElementById('next-month').addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 2); applyFilters(); });
+            if(closeModalBtnElem) closeModalBtnElem.addEventListener('click', closeModal);
+            if(notificationModalOverlayElem) notificationModalOverlayElem.addEventListener('click', (e) => { if(e.target === notificationModalOverlayElem) closeModal(); });
+            
+            addEventBtn.addEventListener('click', openAddEventModal);
+            closeAddEventModalBtn.addEventListener('click', closeAddEventModal);
+            addEventModalOverlay.addEventListener('click', (e) => { if(e.target === addEventModalOverlay) closeAddEventModal(); });
+            
+            prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 2); applyFilters(); });
+            nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 2); applyFilters(); });
 
 
             // --- INICIALIZAÇÃO ---
-            initialize();
+            initializeApp();
         });
     </script>
 </body>
