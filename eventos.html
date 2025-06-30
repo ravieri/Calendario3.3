@@ -75,17 +75,40 @@
             transform: translateX(0);
         }
 
-        #day-details-panel { transition: transform 0.3s ease-in-out; transform: translateX(100%); z-index: 50; }
-        #day-details-panel.open { transform: translateX(0); }
+        #day-details-panel, #my-events-panel, #my-chats-panel, #chat-room-panel, #chat-members-panel { transition: transform 0.3s ease-in-out; transform: translateX(100%); z-index: 50; }
+        #day-details-panel.open, #my-events-panel.open, #my-chats-panel.open, #chat-room-panel.open, #chat-members-panel.open { transform: translateX(0); }
 
-        #notification-modal-overlay, #add-event-modal-overlay { z-index: 99; }
-        #notification-modal-overlay.hidden, #add-event-modal-overlay.hidden { display: none; }
-        #notification-modal, #add-event-modal { transition: opacity 0.3s ease, transform 0.3s ease; }
+        #notification-modal-overlay, #add-event-modal-overlay, #set-password-modal-overlay, #mention-modal-overlay, #status-tooltip, #edit-message-modal-overlay, #reaction-selector { 
+            z-index: 99; 
+        }
+        .modal-overlay.hidden { 
+            display: none; 
+        }
+        .modal-box { 
+            transition: opacity 0.3s ease, transform 0.3s ease; 
+        }
+
         .countdown-pulse { animation: pulse-light 2s infinite; }
         @keyframes pulse-light { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
 
-        .reminder-bell { color: #4b5563; /* gray-600 */ }
-        .reminder-bell.active { color: #facc15; /* yellow-400 */ }
+        .reminder-bell { color: #4b5563; }
+        .reminder-bell.active { color: #facc15; }
+        
+        .mention-icon { color: #4b5563; }
+        .mention-icon:hover { color: #60a5fa; }
+        
+        .status-icon { color: #4b5563; }
+        .status-icon.Criado { color: #34d399; }
+        .status-icon.Em-projeto { color: #f59e0b; }
+        .status-icon.Não-utilizarei { color: #f87171; }
+        
+        .comment-mention, .chat-mention {
+            color: #60a5fa;
+            font-weight: 500;
+            background-color: rgba(96, 165, 250, 0.1);
+            padding: 0 4px;
+            border-radius: 4px;
+        }
 
         .event-name-modal.is-reminder { color: #facc15; }
 
@@ -102,135 +125,293 @@
         .event-card-clickable:hover .dynamic-event-delete-btn {
             opacity: 1;
         }
-         #user-dropdown {
+         #user-dropdown, #notifications-panel {
             transition: opacity 0.2s ease-out, transform 0.2s ease-out;
         }
-        #search-results {
+        #search-results, #notifications-panel {
             max-height: 300px;
             overflow-y: auto;
+        }
+        #notification-badge, .chat-unread-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            min-width: 20px;
+            height: 20px;
+            background-color: #ef4444;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: white;
+            border: 2px solid #111827;
+            padding: 0 4px;
+        }
+        .chat-list-item .chat-unread-badge {
+            position: static;
+            border: none;
+        }
+        .notification-item.unread {
+            background-color: #374151; /* gray-700 */
+            position: relative;
+            padding-left: 2rem;
+        }
+        .notification-item.unread::before {
+            content: '';
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 9999px;
+            background-color: #60a5fa; /* blue-400 */
+        }
+        #unread-filter-toggle:checked ~ .dot {
+            transform: translateX(1.25rem); /* 20px */
+            background-color: #4f46e5; /* indigo-600 */
+        }
+        .comment-delete-btn {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .comment-card:hover .comment-delete-btn {
+            opacity: 1;
+        }
+        .event-details-wrapper {
+            transition: box-shadow 0.3s ease-in-out;
+        }
+        #chat-entry-toast {
+            transition: opacity 0.5s, transform 0.5s;
+        }
+        .chat-message-actions {
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .chat-message-bubble:hover .chat-message-actions {
+            opacity: 1;
         }
     </style>
 </head>
 <body class="text-gray-200">
 
-    <div id="main-content" class="flex h-screen overflow-hidden">
-        <aside id="sidebar" class="w-72 bg-gray-900 p-6 flex flex-col space-y-6 overflow-y-auto">
-            <h2 class="text-2xl font-bold text-white whitespace-nowrap">Navegação</h2>
-            <nav>
-                <ul>
-                    <li class="nav-item"><a href="partidas.html" class="block py-2 px-4 rounded-lg hover:bg-gray-700">Calendário de Partidas</a></li>
-                    <li class="nav-item"><a href="eventos.html" class="block py-2 px-4 rounded-lg bg-indigo-600 text-white">Eventos</a></li>
-                </ul>
-            </nav>
-            <hr class="border-gray-700">
-            
-            <div id="filter-section">
-                <h2 class="text-2xl font-bold text-white whitespace-nowrap mb-4">Filtros</h2>
-                <div id="category-filters" class="space-y-2">
-                    </div>
-            </div>
-        </aside>
+    <div id="app-wrapper">
+        <div id="main-content" class="flex h-screen overflow-hidden">
+            <aside id="sidebar" class="w-72 bg-gray-900 p-6 flex flex-col space-y-6 overflow-y-auto">
+                <h2 class="text-2xl font-bold text-white whitespace-nowrap">Navegação</h2>
+                <nav>
+                    <ul>
+                        <li class="nav-item"><a href="partidas.html" class="block py-2 px-4 rounded-lg hover:bg-gray-700">Calendário de Partidas</a></li>
+                        <li class="nav-item"><a href="eventos.html" class="block py-2 px-4 rounded-lg bg-indigo-600 text-white">Eventos</a></li>
+                    </ul>
+                </nav>
+                <hr class="border-gray-700">
+                
+                <div id="filter-section">
+                    <h2 class="text-2xl font-bold text-white whitespace-nowrap mb-4">Filtros</h2>
+                    <div id="category-filters" class="space-y-2">
+                        </div>
+                </div>
+            </aside>
 
-        <main class="flex-1 p-8 overflow-y-auto relative">
-            <button id="sidebar-toggle" class="absolute top-6 left-6 z-30 p-2 rounded-full bg-gray-800 hover:bg-gray-700">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-            </button>
-            <div class="absolute top-6 right-6 z-30 flex items-center gap-4">
-                 <button id="add-event-btn" class="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2" style="visibility: hidden;">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-                    <span>Adicionar Evento</span>
+            <main class="flex-1 p-8 overflow-y-auto relative">
+                <button id="sidebar-toggle" class="absolute top-6 left-6 z-30 p-2 rounded-full bg-gray-800 hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
                 </button>
-                <div id="auth-section" class="relative">
-                    <button id="login-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg hidden whitespace-nowrap">
-                        Login com Google
+                <div class="absolute top-6 right-6 z-30 flex items-center gap-4">
+                    <button id="add-event-btn" class="p-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-2" style="visibility: hidden;">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                        <span>Adicionar Evento</span>
                     </button>
-                    <div id="user-profile-area" class="relative hidden">
-                        <img id="user-photo" class="w-10 h-10 rounded-full cursor-pointer border-2 border-transparent hover:border-indigo-500 transition-colors" alt="Foto do utilizador">
-                        <div id="user-dropdown" class="absolute right-0 mt-2 w-56 bg-gray-700 rounded-md shadow-lg py-1 hidden transform opacity-0 scale-95 transition ease-in-out duration-100">
-                            <div class="px-4 py-3 text-sm text-gray-200">
-                                <p class="font-semibold">Logado como:</p>
-                                <p id="user-name" class="truncate"></p>
+
+                    <div id="notifications-container" class="relative hidden">
+                        <button id="notifications-bell-btn" class="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+                            <span class="sr-only">Ver notificações</span>
+                            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                            <span id="notification-badge" class="hidden"></span>
+                        </button>
+                        <div id="notifications-panel" class="absolute right-0 mt-2 w-80 bg-gray-800 border border-gray-700 rounded-md shadow-lg hidden transform opacity-0 scale-95">
+                            <div class="px-4 py-3 text-sm font-semibold text-white border-b border-gray-700">Notificações</div>
+                            <div class="px-4 py-2 border-b border-gray-700">
+                                <label for="unread-filter-toggle" class="flex items-center justify-between cursor-pointer">
+                                    <span class="text-xs font-medium text-gray-300">Mostrar apenas não lidas</span>
+                                    <div class="relative">
+                                        <input type="checkbox" id="unread-filter-toggle" class="sr-only">
+                                        <div class="block bg-gray-600 w-10 h-5 rounded-full"></div>
+                                        <div class="dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition"></div>
+                                    </div>
+                                </label>
                             </div>
-                            <div class="border-t border-gray-600"></div>
-                            <a href="#" id="logout-button" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-600 hover:text-red-300">Sair</a>
+                            <div id="notifications-list" class="py-1">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="auth-section" class="relative">
+                        <button id="login-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg hidden whitespace-nowrap">
+                            Login com Google
+                        </button>
+                        <div id="user-profile-area" class="relative hidden">
+                            <img id="user-photo" class="w-10 h-10 rounded-full cursor-pointer border-2 border-transparent hover:border-indigo-500 transition-colors" alt="Foto do utilizador">
+                            <div id="user-dropdown" class="absolute right-0 mt-2 w-56 bg-gray-700 rounded-md shadow-lg py-1 hidden transform opacity-0 scale-95">
+                                <div class="px-4 py-3 text-sm text-gray-200">
+                                    <p class="font-semibold">Logado como:</p>
+                                    <p id="user-name" class="truncate"></p>
+                                </div>
+                                <div class="border-t border-gray-600"></div>
+                                <a href="#" id="my-events-link" class="block w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-600">Meus Eventos Marcados</a>
+                                <a href="#" id="my-chats-link" class="relative flex justify-between items-center w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-600">
+                                    <span>Chat de Eventos</span>
+                                    <span id="total-unread-badge" class="chat-unread-badge hidden"></span>
+                                </a>
+                                <div class="border-t border-gray-600"></div>
+                                <a href="#" id="logout-button" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-600 hover:text-red-300">Sair</a>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="flex items-center justify-center mb-2">
-                <h1 class="text-3xl font-bold text-white text-center">Calendário de Eventos</h1>
-            </div>
-             <!-- Search Bar Section -->
-            <div class="max-w-xl mx-auto mb-6 relative z-20">
-                <div class="relative">
-                    <input type="text" id="event-search-input" placeholder="Pesquisar evento por nome..." class="w-full bg-gray-800 border-2 border-gray-700 rounded-lg py-2 px-4 text-white focus:outline-none focus:border-indigo-500 transition-colors">
-                    <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+                <div class="flex items-center justify-center mb-2">
+                    <h1 class="text-3xl font-bold text-white text-center">Calendário de Eventos</h1>
                 </div>
-                <div id="search-results" class="absolute w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg hidden">
-                    <!-- Search results will be populated here -->
-                </div>
-            </div>
-
-            
-            <div id="calendar-background-particles"></div>
-
-            <div id="active-trail-info" class="max-w-3xl mx-auto mb-6 p-3 rounded-lg bg-gray-800 border border-gray-700 items-center justify-between hidden">
-                <div class="flex items-center gap-4">
-                    <span class="text-sm font-semibold text-gray-400">SELECIONADO:</span>
-                    <div class="flex flex-col">
-                        <span id="trail-event-name" class="font-bold text-white"></span>
-                        <span id="trail-event-category" class="text-xs text-indigo-400"></span>
-                        <span id="trail-event-dates" class="text-xs text-gray-400 mt-1"></span>
+                <div class="max-w-xl mx-auto mb-6 relative z-20">
+                    <div class="relative">
+                        <input type="text" id="event-search-input" placeholder="Pesquisar evento por nome..." class="w-full bg-gray-800 border-2 border-gray-700 rounded-lg py-2 px-4 text-white focus:outline-none focus:border-indigo-500 transition-colors">
+                        <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <div id="search-results" class="absolute w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg hidden">
                     </div>
                 </div>
-                <button id="clear-trail-btn" class="p-2 rounded-full hover:bg-gray-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            
-            <div id="calendars-container" class="relative flex justify-center items-start gap-8">
-                <div id="next-event-prompt" class="absolute inset-0 flex-col items-center justify-center bg-black bg-opacity-75 hidden z-20 rounded-lg p-8 text-center">
-                    <p id="prompt-title" class="text-2xl font-bold text-white mb-4"></p>
-                    <button id="jump-to-event-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg flex items-center transition-transform transform hover:scale-105">
-                        <span id="jump-text"></span><span id="jump-date" class="ml-2 font-black"></span>
+                <div id="calendar-background-particles"></div>
+                <div id="active-trail-info" class="max-w-3xl mx-auto mb-6 p-3 rounded-lg bg-gray-800 border border-gray-700 items-center justify-between hidden">
+                    <div class="flex items-center gap-4">
+                        <span class="text-sm font-semibold text-gray-400">SELECIONADO:</span>
+                        <div class="flex flex-col">
+                            <span id="trail-event-name" class="font-bold text-white"></span>
+                            <span id="trail-event-category" class="text-xs text-indigo-400"></span>
+                            <span id="trail-event-dates" class="text-xs text-gray-400 mt-1"></span>
+                        </div>
+                    </div>
+                    <button id="clear-trail-btn" class="p-2 rounded-full hover:bg-gray-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                     </button>
                 </div>
-                <div id="calendar-1" class="w-full max-w-xl">
-                     <div class="flex items-center justify-center relative mb-4">
-                        <button id="prev-month" class="absolute left-0 p-2 rounded-full hover:bg-gray-700 text-white z-10">&lt;</button>
-                        <h2 id="month-year-header-1" class="text-2xl font-bold"></h2>
+                <div id="calendars-container" class="relative flex justify-center items-start gap-8">
+                    <div id="next-event-prompt" class="absolute inset-0 flex-col items-center justify-center bg-black bg-opacity-75 hidden z-20 rounded-lg p-8 text-center">
+                        <p id="prompt-title" class="text-2xl font-bold text-white mb-4"></p>
+                        <button id="jump-to-event-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg flex items-center transition-transform transform hover:scale-105">
+                            <span id="jump-text"></span><span id="jump-date" class="ml-2 font-black"></span>
+                        </button>
                     </div>
-                    <div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
-                    <div id="calendar-grid-1" class="grid grid-cols-7 gap-2"></div>
+                    <div id="calendar-1" class="w-full max-w-xl">
+                        <div class="flex items-center justify-center relative mb-4">
+                            <button id="prev-month" class="absolute left-0 p-2 rounded-full hover:bg-gray-700 text-white z-10">&lt;</button>
+                            <h2 id="month-year-header-1" class="text-2xl font-bold"></h2>
+                        </div>
+                        <div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
+                        <div id="calendar-grid-1" class="grid grid-cols-7 gap-2"></div>
+                    </div>
+                    <div class="h-auto self-stretch border-l border-gray-700"></div>
+                    <div id="calendar-2" class="w-full max-w-xl">
+                        <div class="flex items-center justify-center relative mb-4">
+                            <h2 id="month-year-header-2" class="text-2xl font-bold"></h2>
+                            <button id="next-month" class="absolute right-0 p-2 rounded-full hover:bg-gray-700 text-white z-10">&gt;</button>
+                        </div>
+                        <div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
+                        <div id="calendar-grid-2" class="grid grid-cols-7 gap-2"></div>
+                    </div>
                 </div>
-                <div class="h-auto self-stretch border-l border-gray-700"></div>
-                <div id="calendar-2" class="w-full max-w-xl">
-                    <div class="flex items-center justify-center relative mb-4">
-                        <h2 id="month-year-header-2" class="text-2xl font-bold"></h2>
-                        <button id="next-month" class="absolute right-0 p-2 rounded-full hover:bg-gray-700 text-white z-10">&gt;</button>
-                    </div>
-                    <div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
-                    <div id="calendar-grid-2" class="grid grid-cols-7 gap-2"></div>
+            </main>
+        </div>
+
+        <!-- Painel de Detalhes -->
+        <div id="day-details-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 shadow-lg p-6 overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="details-title" class="text-2xl font-bold text-white">Eventos do Dia</h2>
+                <button id="close-details" class="p-2 rounded-full hover:bg-gray-700 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="details-content" class="space-y-4"></div>
+        </div>
+
+        <!-- Painel Meus Eventos Marcados -->
+        <div id="my-events-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 shadow-lg p-6 overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white">Meus Eventos Marcados</h2>
+                <button id="close-my-events" class="p-2 rounded-full hover:bg-gray-700 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="my-events-content" class="space-y-4"></div>
+        </div>
+
+        <!-- Painel Lista de Chats -->
+        <div id="my-chats-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 shadow-lg p-6 overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white">Chat de Eventos</h2>
+                <button id="close-my-chats" class="p-2 rounded-full hover:bg-gray-700 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="my-chats-content" class="space-y-4"></div>
+        </div>
+
+        <!-- Painel do Chat -->
+        <div id="chat-room-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-900 shadow-lg flex flex-col">
+            <div class="flex justify-between items-center p-4 bg-gray-800 border-b border-gray-700">
+                <button id="back-to-chats-list" class="p-2 rounded-full hover:bg-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <h2 id="chat-room-title" class="text-lg font-bold text-white truncate mx-2"></h2>
+                <div class="flex items-center gap-2">
+                    <button id="chat-members-btn" class="p-2 rounded-full hover:bg-gray-700">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"></path></svg>
+                    </button>
+                    <button id="leave-chat-btn" class="text-sm text-red-400 hover:text-red-300 hover:bg-red-500/20 px-3 py-1 rounded-lg">Sair</button>
                 </div>
             </div>
-        </main>
-    </div>
-    
-    <div id="day-details-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 shadow-lg p-6 overflow-y-auto">
-        <div class="flex justify-between items-center mb-6">
-            <h2 id="details-title" class="text-2xl font-bold text-white">Eventos do Dia</h2>
-            <button id="close-details" class="p-2 rounded-full hover:bg-gray-700 text-2xl leading-none">&times;</button>
+            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-4"></div>
+            <div id="reply-preview-container" class="p-2 bg-gray-800 border-t border-gray-700 hidden"></div>
+            <form id="chat-form" class="p-4 bg-gray-800 border-t border-gray-700">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="chat-message-input" placeholder="Escreva uma mensagem..." required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500">
+                    <button type="submit" class="p-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </button>
+                </div>
+            </form>
         </div>
-        <div id="details-content" class="space-y-4"></div>
+
+        <!-- Painel de Membros do Chat -->
+        <div id="chat-members-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 shadow-lg p-6 overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white">Membros do Chat</h2>
+                <button id="close-chat-members" class="p-2 rounded-full hover:bg-gray-700 text-2xl leading-none">&times;</button>
+            </div>
+            <div id="chat-members-content" class="space-y-4"></div>
+        </div>
+
+        <!-- Tooltip para Status -->
+        <div id="status-tooltip" class="absolute hidden w-64 bg-gray-900 border border-gray-700 rounded-lg shadow-xl p-3 text-sm z-50"></div>
+
+        <!-- Toast de Entrada no Chat -->
+        <div id="chat-entry-toast" class="fixed bottom-5 right-5 bg-green-500 text-white p-4 rounded-lg shadow-lg flex items-center gap-4 opacity-0 transform translate-y-10">
+            <span id="toast-message"></span>
+            <button id="toast-view-chat-btn" class="font-bold underline hover:text-green-100">Ver chat</button>
+        </div>
+
+        <!-- Seletor de Reações -->
+        <div id="reaction-selector" class="absolute hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-1 flex gap-1 z-50">
+            <button class="reaction-option text-xl p-1 hover:bg-gray-600 rounded-md">👍</button>
+            <button class="reaction-option text-xl p-1 hover:bg-gray-600 rounded-md">🎉</button>
+            <button class="reaction-option text-xl p-1 hover:bg-gray-600 rounded-md">❤️</button>
+        </div>
     </div>
-    
+
+    <!-- Modais -->
     <div id="notification-modal-overlay" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden">
-        <div id="notification-modal" class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg p-8 text-white scale-95 opacity-0">
+        <div id="notification-modal" class="modal-box bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg p-8 text-white scale-95 opacity-0">
             <h2 class="text-3xl font-bold text-center mb-2">🔥 Fique de Olho!</h2>
             <p class="text-center text-gray-400 mb-6">Estes eventos importantes estão começando ou terminando em breve.</p>
             <div id="modal-reminder-action-message" class="text-center text-green-400 mb-4 hidden"></div>
@@ -238,55 +419,95 @@
             <button id="close-modal-btn" class="w-full mt-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg">Explorar Calendário</button>
         </div>
     </div>
-    
     <div id="add-event-modal-overlay" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden">
-        <div id="add-event-modal" class="bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg p-8 text-white scale-95 opacity-0 transition-transform">
-             <div class="flex justify-between items-center mb-6">
+        <div id="add-event-modal" class="modal-box bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg p-8 text-white scale-95 opacity-0 transition-transform">
+            <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold">Adicionar Novo Evento</h2>
                 <button id="close-add-event-modal" class="p-2 rounded-full hover:bg-gray-700 text-2xl leading-none">&times;</button>
             </div>
             <form id="add-event-form" class="space-y-4">
-                <input type="text" id="creator-name" placeholder="Seu Nome (Obrigatório)" required readonly class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-not-allowed">
-                <input type="text" id="event-name" placeholder="Nome do Evento/Partida" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                
-                <select id="event-type" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="text" id="creator-name" placeholder="Seu Nome (Obrigatório)" required readonly class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 cursor-not-allowed">
+                <input type="text" id="event-name" placeholder="Nome do Evento/Partida" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500">
+                <select id="event-type" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500">
                     <option value="Competição">Competição</option>
                     <option value="Partida">Partida</option>
                 </select>
-
                 <div id="competition-dates" class="grid grid-cols-2 gap-4">
                     <div>
                         <label for="start-date" class="block text-sm font-medium text-gray-400 mb-1">Data de Início</label>
-                        <input type="date" id="start-date" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="date" id="start-date" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500">
                     </div>
                     <div>
                         <label for="end-date" class="block text-sm font-medium text-gray-400 mb-1">Data de Fim</label>
-                        <input type="date" id="end-date" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="date" id="end-date" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500">
                     </div>
                 </div>
-
                 <div id="match-date-container" class="hidden">
                     <label for="match-date" class="block text-sm font-medium text-gray-400 mb-1">Data da Partida</label>
-                    <input type="date" id="match-date" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <input type="date" id="match-date" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500">
                 </div>
-
-                <select id="event-category" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    </select>
-                <input type="text" id="event-league" placeholder="Campeonato (se for partida)" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hidden">
-                <textarea id="event-details" placeholder="Detalhes do evento..." rows="3" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                <select id="event-category" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500"></select>
+                <input type="text" id="event-league" placeholder="Campeonato (se for partida)" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 hidden">
+                <textarea id="event-details" placeholder="Detalhes do evento..." rows="3" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500"></textarea>
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg">Salvar Evento</button>
             </form>
         </div>
     </div>
-
-
+    <div id="set-password-modal-overlay" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center hidden">
+        <div id="set-password-modal" class="modal-box bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md p-8 text-white scale-95 opacity-0">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Crie uma Senha</h2>
+                <button id="close-set-password-modal" class="p-2 rounded-full hover:bg-gray-700 text-2xl leading-none">&times;</button>
+            </div>
+            <p class="text-gray-400 mb-6">Para maior segurança, por favor, crie uma senha para sua conta.</p>
+            <form id="set-password-form" class="space-y-4">
+                <div>
+                    <label for="new-password" class="block text-sm font-medium text-gray-400 mb-1">Nova Senha</label>
+                    <input type="password" id="new-password" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500" minlength="6">
+                </div>
+                <div>
+                    <label for="confirm-password" class="block text-sm font-medium text-gray-400 mb-1">Confirmar Senha</label>
+                    <input type="password" id="confirm-password" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500">
+                </div>
+                 <p id="password-error-msg" class="text-red-400 text-sm hidden"></p>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg">Definir Senha</button>
+            </form>
+        </div>
+    </div>
+    <div id="mention-modal-overlay" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden">
+        <div id="mention-modal" class="modal-box bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md p-8 text-white scale-95 opacity-0">
+            <div class="flex justify-between items-center mb-4">
+                 <h2 id="mention-modal-title" class="text-2xl font-bold">Mencionar Utilizador</h2>
+                 <button id="close-mention-modal" class="p-2 rounded-full hover:bg-gray-700 text-2xl leading-none">&times;</button>
+            </div>
+            <p id="mention-context-text" class="text-gray-400 mb-2 hidden"></p>
+            <div class="relative mb-4">
+                 <input type="text" id="mention-user-search" placeholder="Pesquisar utilizador..." class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div id="mention-user-list" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+            </div>
+             <p id="mention-feedback" class="text-green-400 text-center mt-4 hidden"></p>
+        </div>
+    </div>
+    <!-- NOVO: Modal para Editar Mensagem -->
+    <div id="edit-message-modal-overlay" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden">
+        <div id="edit-message-modal" class="modal-box bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md p-8 text-white scale-95 opacity-0">
+            <h2 class="text-2xl font-bold mb-4">Editar Mensagem</h2>
+            <form id="edit-message-form">
+                <textarea id="edit-message-textarea" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500" rows="4"></textarea>
+                <div class="flex justify-end gap-4 mt-4">
+                    <button type="button" id="cancel-edit-btn" class="px-4 py-2 rounded-lg hover:bg-gray-700">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
     <script type="module">
-        // Import Firebase
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js"; 
-        import { getFirestore, collection, onSnapshot, addDoc, doc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, deleteDoc, serverTimestamp, getDocs, setDoc, getDoc, query, where, writeBatch, updateDoc, orderBy, collectionGroup, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
         
-        // Sua configuração do Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBGZGzl-vbVAT8lZn--v3cuTYtAs-fy2Os",
             authDomain: "calendario-eventos-1c3d0.firebaseapp.com",
@@ -297,14 +518,14 @@
         };
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAmcjEF6zLt_QpiV7Jby-4GcPv9oAnMqv9Ed_JnBJBSCYMMBpyd_hUeBMlUBTAeX8Ruw/exec';
 
-        // Inicializa o Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const auth = getAuth(app);
         const dynamicEventsCollection = collection(db, 'dynamic_events');
+        const usersCollection = collection(db, 'users');
+        const notificationsCollection = collection(db, 'notifications');
 
         document.addEventListener('DOMContentLoaded', async () => { 
-            // Elementos do DOM existentes
             const sidebar = document.getElementById('sidebar');
             const sidebarToggleBtn = document.getElementById('sidebar-toggle');
             const categoryFiltersContainer = document.getElementById('category-filters');
@@ -348,11 +569,56 @@
             const jumpToEventBtn = document.getElementById('jump-to-event-btn');
             const jumpTextEl = document.getElementById('jump-text');
             const jumpDateEl = document.getElementById('jump-date');
-            
-            // Novos elementos do DOM para a busca
             const searchInput = document.getElementById('event-search-input');
             const searchResultsContainer = document.getElementById('search-results');
-
+            const setPasswordModalOverlay = document.getElementById('set-password-modal-overlay');
+            const closeSetPasswordModalBtn = document.getElementById('close-set-password-modal');
+            const setPasswordForm = document.getElementById('set-password-form');
+            const passwordErrorMsg = document.getElementById('password-error-msg');
+            const mentionModalOverlay = document.getElementById('mention-modal-overlay');
+            const mentionModalTitle = document.getElementById('mention-modal-title');
+            const mentionContextText = document.getElementById('mention-context-text');
+            const closeMentionModalBtn = document.getElementById('close-mention-modal');
+            const mentionUserSearchInput = document.getElementById('mention-user-search');
+            const mentionUserListEl = document.getElementById('mention-user-list');
+            const mentionFeedbackEl = document.getElementById('mention-feedback');
+            const notificationsContainer = document.getElementById('notifications-container');
+            const notificationsBellBtn = document.getElementById('notifications-bell-btn');
+            const notificationBadge = document.getElementById('notification-badge');
+            const notificationsPanel = document.getElementById('notifications-panel');
+            const notificationsList = document.getElementById('notifications-list');
+            const unreadFilterToggle = document.getElementById('unread-filter-toggle');
+            const myEventsPanel = document.getElementById('my-events-panel');
+            const closeMyEventsBtn = document.getElementById('close-my-events');
+            const myEventsContent = document.getElementById('my-events-content');
+            const myEventsLink = document.getElementById('my-events-link');
+            const myChatsLink = document.getElementById('my-chats-link');
+            const myChatsPanel = document.getElementById('my-chats-panel');
+            const closeMyChatsBtn = document.getElementById('close-my-chats');
+            const myChatsContent = document.getElementById('my-chats-content');
+            const chatRoomPanel = document.getElementById('chat-room-panel');
+            const chatRoomTitle = document.getElementById('chat-room-title');
+            const backToChatsListBtn = document.getElementById('back-to-chats-list');
+            const leaveChatBtn = document.getElementById('leave-chat-btn');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatForm = document.getElementById('chat-form');
+            const chatMessageInput = document.getElementById('chat-message-input');
+            const statusTooltip = document.getElementById('status-tooltip');
+            const chatEntryToast = document.getElementById('chat-entry-toast');
+            const toastMessage = document.getElementById('toast-message');
+            const toastViewChatBtn = document.getElementById('toast-view-chat-btn');
+            const totalUnreadBadge = document.getElementById('total-unread-badge');
+            const chatMembersBtn = document.getElementById('chat-members-btn');
+            const chatMembersPanel = document.getElementById('chat-members-panel');
+            const closeChatMembersBtn = document.getElementById('close-chat-members');
+            const chatMembersContent = document.getElementById('chat-members-content');
+            const replyPreviewContainer = document.getElementById('reply-preview-container');
+            const editMessageModalOverlay = document.getElementById('edit-message-modal-overlay');
+            const editMessageModal = document.getElementById('edit-message-modal');
+            const editMessageForm = document.getElementById('edit-message-form');
+            const editMessageTextarea = document.getElementById('edit-message-textarea');
+            const cancelEditBtn = document.getElementById('cancel-edit-btn');
+            const reactionSelector = document.getElementById('reaction-selector');
 
             const sportConfigs = {
                 'Futebol': { particleColor: '#22c55e', color: 'bg-green-500' }, 
@@ -363,9 +629,39 @@
                 'Criado por Utilizador': { particleColor: '#ec4899', color: 'bg-pink-500' }
             };
 
+            const projectStatusConfig = {
+                "Criado!": { color: 'text-green-400', class: 'Criado' },
+                "Em projeto": { color: 'text-amber-400', class: 'Em-projeto' },
+                "Não utilizarei": { color: 'text-red-400', class: 'Não-utilizarei' }
+            };
+
             let staticEvents = [];
             let dynamicEvents = []; 
             let currentUser = null;
+            let allUsers = [];
+            let unreadNotificationsListener = null;
+            let myNotifications = [];
+            let notificationsExpanded = false;
+            let activeCommentListeners = [];
+            let activeChatListener = null;
+            let activeChatUnreadListener = null;
+            let mentionCallback = null;
+            let initialEventIdToShow = null;
+            let statusTooltipTimer = null;
+            let chatMentions = [];
+            let replyingToMessage = null;
+            let editingMessage = null;
+
+            const checkUrlForEvent = () => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const eventId = urlParams.get('eventId');
+                const openChat = urlParams.get('openChat');
+
+                if (eventId) {
+                    initialEventIdToShow = { id: eventId, openChat: openChat === 'true' };
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
+            };
 
             try {
                 const response = await fetch('./eventos.json');
@@ -379,11 +675,150 @@
             let allEvents = [];
             let savedReminders = JSON.parse(localStorage.getItem('eventReminders')) || []; 
             let activeTrail = null; 
-            let countdownIntervals = [];
+            
+            onAuthStateChanged(auth, async (user) => {
+                currentUser = user;
+                if (user) {
+                    userProfileArea.classList.remove('hidden');
+                    loginButton.classList.add('hidden');
+                    addEventBtn.style.visibility = 'visible';
+                    notificationsContainer.classList.remove('hidden');
+                    myEventsLink.classList.remove('hidden');
+                    myChatsLink.classList.remove('hidden');
+                    userPhoto.src = user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=374151&color=fff`;
+                    userName.textContent = user.displayName || user.email;
+
+                    const userDocRef = doc(db, 'users', user.uid);
+                    await setDoc(userDocRef, { displayName: user.displayName, email: user.email, photoURL: user.photoURL }, { merge: true });
+
+                    await fetchAllUsers();
+                    listenForNotifications(user.uid);
+                    listenForUnreadChats(user.uid);
+
+                    const userDocSnap = await getDoc(userDocRef);
+                    const hasPassword = userDocSnap.exists() && userDocSnap.data().hasSetPassword;
+
+                    if (!hasPassword) {
+                        openSetPasswordModal();
+                    }
+                } else {
+                    userProfileArea.classList.add('hidden');
+                    loginButton.classList.remove('hidden');
+                    addEventBtn.style.visibility = 'hidden';
+                    notificationsContainer.classList.add('hidden');
+                     myEventsLink.classList.add('hidden');
+                     myChatsLink.classList.add('hidden');
+                    if (unreadNotificationsListener) unreadNotificationsListener();
+                    if (activeChatUnreadListener) activeChatUnreadListener();
+                }
+                updateAllEvents();
+            });
+
+            const listenForNotifications = (userId) => {
+                const q = query(notificationsCollection, where("recipientUid", "==", userId));
+                if (unreadNotificationsListener) unreadNotificationsListener();
+                unreadNotificationsListener = onSnapshot(q, (snapshot) => {
+                    myNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    const unreadCount = myNotifications.filter(n => !n.read).length;
+                    notificationBadge.textContent = unreadCount;
+                    notificationBadge.classList.toggle('hidden', unreadCount === 0);
+                    renderNotificationsPanel();
+                });
+            };
+
+            const renderNotificationsPanel = () => {
+                notificationsList.innerHTML = '';
+
+                const showOnlyUnread = unreadFilterToggle.checked;
+                const notificationsToRender = showOnlyUnread 
+                    ? myNotifications.filter(n => !n.read) 
+                    : myNotifications;
+                
+                if (notificationsToRender.length === 0) {
+                    notificationsList.innerHTML = `<p class="text-gray-400 text-sm px-4 py-2">${showOnlyUnread ? 'Nenhuma notificação não lida.' : 'Nenhuma notificação.'}</p>`;
+                    return;
+                }
+
+                notificationsToRender.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+
+                const notificationsToDisplay = notificationsExpanded ? notificationsToRender : notificationsToRender.slice(0, 3);
+
+                notificationsToDisplay.forEach(notification => {
+                    const itemEl = document.createElement('a');
+                    const isChatMention = notification.message.includes('mencionou você no chat') || notification.message.includes('respondeu à sua mensagem');
+                    itemEl.href = `./eventos.html?eventId=${notification.eventId}${isChatMention ? '&openChat=true' : ''}`;
+                    itemEl.className = `notification-item block px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 ${!notification.read ? 'unread' : ''}`;
+                    itemEl.dataset.id = notification.id;
+                    
+                    itemEl.innerHTML = `
+                        <p class="truncate ${!notification.read ? 'font-bold' : ''}">${notification.message}</p>
+                        <p class="text-xs text-gray-500">${new Date(notification.createdAt.toMillis()).toLocaleString('pt-BR')}</p>
+                    `;
+                    notificationsList.appendChild(itemEl);
+                });
+
+                if (notificationsToRender.length > 3 && !notificationsExpanded) {
+                    const showMoreContainer = document.createElement('div');
+                    showMoreContainer.className = 'text-center border-t border-gray-700';
+                    const showMoreButton = document.createElement('button');
+                    showMoreButton.id = 'show-more-notifications-btn';
+                    showMoreButton.className = 'w-full py-2 text-xs text-indigo-400 hover:bg-gray-700 flex items-center justify-center gap-2';
+                    showMoreButton.innerHTML = `
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
+                        </svg>
+                        <span>Ver todas (${notificationsToRender.length})</span>
+                    `;
+                    showMoreButton.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        notificationsExpanded = true;
+                        renderNotificationsPanel();
+                    });
+                    showMoreContainer.appendChild(showMoreButton);
+                    notificationsList.appendChild(showMoreContainer);
+                }
+            };
+
+            const markSingleNotificationAsRead = async (notificationId) => {
+                const notification = myNotifications.find(n => n.id === notificationId);
+                if (notification && !notification.read) {
+                    const notifRef = doc(db, "notifications", notificationId);
+                    await updateDoc(notifRef, { "read": true });
+                }
+            };
 
             const updateAllEvents = () => {
                 allEvents = [...staticEvents, ...dynamicEvents];
                 applyFilters();
+                const openDate = detailsPanel.dataset.date;
+                if (detailsPanel.classList.contains('open') && openDate) {
+                    showDayDetails(openDate, allEvents);
+                }
+
+                if (initialEventIdToShow && allEvents.length > 0) {
+                    const eventToShow = allEvents.find(e => e.id === initialEventIdToShow.id);
+                    if (eventToShow) {
+                        if (initialEventIdToShow.openChat) {
+                            openChatRoom(eventToShow.id, eventToShow.nome);
+                        } else {
+                            navigateToEventDate(eventToShow.data_inicio);
+                            showDayDetails(eventToShow.data_inicio, allEvents);
+                            
+                            setTimeout(() => {
+                                const card = document.querySelector(`.event-details-wrapper[data-event-id='${initialEventIdToShow.id}']`);
+                                if (card) {
+                                    card.style.boxShadow = '0 0 20px 5px rgba(96, 165, 250, 0.6)';
+                                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    setTimeout(() => {
+                                       card.style.boxShadow = '';
+                                    }, 3000);
+                                }
+                            }, 500);
+                        }
+                    }
+                    initialEventIdToShow = null;
+                }
             };
 
             const listenForDynamicEvents = () => {
@@ -412,7 +847,6 @@
                 }
             };
             
-
             const getEventUniqueId = (event) => {
                 if(event.id) return event.id;
                 return `${event.nome}_${event.data_inicio}_${event.data_fim}`;
@@ -559,7 +993,6 @@
                 });
             }
              
-            // --- INÍCIO: LÓGICA DE BUSCA ---
             const renderSearchResults = (results) => {
                 searchResultsContainer.innerHTML = '';
                 if(results.length === 0) {
@@ -603,14 +1036,8 @@
                 currentDate = new Date(eventDate.getUTCFullYear(), eventDate.getUTCMonth(), 1);
                 applyFilters();
                 
-                // Highlight the specific day after the calendar has re-rendered
                 setTimeout(() => highlightDay(dateStr), 200);
             };
-
-            searchInput.addEventListener('input', (e) => {
-                handleSearch(e.target.value);
-            });
-            // --- FIM: LÓGICA DE BUSCA ---
 
             const toggleReminder = (eventData) => {
                 const eventUniqueId = getEventUniqueId(eventData);
@@ -628,8 +1055,192 @@
                 }
                 applyFilters();
             };
+            
+            const cleanupCommentListeners = () => {
+                activeCommentListeners.forEach(unsubscribe => unsubscribe());
+                activeCommentListeners = [];
+            };
+            
+            const loadCommentsUI = async (eventId, containerEl) => {
+                const currentEventData = allEvents.find(e => e.id === eventId);
+                if (!currentEventData) return;
 
+                const commentsQuery = query(collection(db, 'dynamic_events', eventId, 'comments'), orderBy('createdAt', 'desc'));
+                let currentMentions = [];
+
+                const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
+                    let formHtml = '';
+                    if (currentUser) {
+                        formHtml = `
+                        <form id="comment-form-${eventId}" class="mb-4 flex items-start gap-2">
+                            <img src="${currentUser.photoURL || `https://ui-avatars.com/api/?name=${currentUser.displayName || 'U'}`}" alt="Sua foto" class="w-8 h-8 rounded-full">
+                            <div class="flex-1">
+                                <textarea name="commentText" placeholder="Adicionar um comentário... Use @ para mencionar." required class="w-full bg-gray-600 text-white p-2 rounded-lg border border-gray-500 focus:ring-2 focus:ring-indigo-500 resize-none text-sm" rows="2"></textarea>
+                                <button type="submit" class="mt-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-1 px-3 rounded-md text-sm">Comentar</button>
+                            </div>
+                        </form>
+                        `;
+                    }
+
+                    let listHtml = `<div id="comments-list-${eventId}" class="space-y-3">`;
+                    if (snapshot.empty) {
+                        if (currentUser) {
+                           listHtml += `<p class="text-gray-500 text-sm">Nenhum comentário ainda. Seja o primeiro!</p>`;
+                        } else {
+                           listHtml += `<p class="text-gray-500 text-sm">Nenhum comentário ainda.</p>`;
+                        }
+                    } else {
+                        snapshot.forEach(doc => {
+                            const comment = doc.data();
+                            const canDeleteComment = currentUser && currentUser.uid === comment.authorId;
+                            
+                            let commentText = comment.text;
+                            if (comment.mentions && comment.mentions.length > 0) {
+                                comment.mentions.forEach(mention => {
+                                    const mentionTag = `@${mention.displayName}`;
+                                    commentText = commentText.replace(new RegExp(mentionTag, "g"), `<span class="comment-mention">${mentionTag}</span>`);
+                                });
+                            }
+
+                            listHtml += `
+                            <div class="comment-card flex items-start gap-3 relative">
+                                <img src="${comment.authorPhotoURL || `https://ui-avatars.com/api/?name=${comment.authorName || 'U'}`}" alt="Foto de ${comment.authorName}" class="w-8 h-8 rounded-full mt-1">
+                                <div class="flex-1 bg-gray-700 rounded-lg p-2">
+                                    <div class="flex items-center justify-between">
+                                        <p class="font-semibold text-sm text-white">${comment.authorName}</p>
+                                        <span class="text-xs text-gray-400">${comment.createdAt ? new Date(comment.createdAt.toMillis()).toLocaleString('pt-BR') : ''}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-300 whitespace-pre-wrap">${commentText}</p>
+                                </div>
+                                ${canDeleteComment ? `<button class="comment-delete-btn p-1 rounded-full hover:bg-red-500/50 absolute top-1 right-1" data-event-id="${eventId}" data-comment-id="${doc.id}" title="Apagar comentário"><svg class="w-4 h-4 text-gray-400 hover:text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg></button>` : ''}
+                            </div>
+                            `;
+                        });
+                    }
+                    listHtml += `</div>`;
+                    
+                    const commentsSectionHtml = `
+                        <div class="border-t border-gray-600 pt-4">
+                            <div id="comments-toggle-${eventId}" class="flex justify-between items-center cursor-pointer -mt-2 pb-2">
+                                <h4 class="text-md font-bold text-gray-300">Comentários (${snapshot.size})</h4>
+                                <svg class="comments-arrow w-5 h-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                            <div class="comments-content-wrapper overflow-hidden transition-all duration-500 ease-in-out" style="max-height: 0px;">
+                                <div class="pt-2">
+                                    ${formHtml}
+                                    ${listHtml}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    containerEl.innerHTML = commentsSectionHtml;
+
+                    const toggleBtn = containerEl.querySelector(`#comments-toggle-${eventId}`);
+                    const contentWrapper = containerEl.querySelector('.comments-content-wrapper');
+                    const arrow = toggleBtn.querySelector('.comments-arrow');
+
+                    toggleBtn.addEventListener('click', () => {
+                        if (contentWrapper.style.maxHeight === '0px' || contentWrapper.style.maxHeight === '') {
+                            contentWrapper.style.maxHeight = contentWrapper.scrollHeight + 'px';
+                            arrow.style.transform = 'rotate(180deg)';
+                        } else {
+                            contentWrapper.style.maxHeight = '0px';
+                            arrow.style.transform = 'rotate(0deg)';
+                        }
+                    });
+
+                    const commentForm = document.getElementById(`comment-form-${eventId}`);
+                    if (commentForm) {
+                        const textarea = commentForm.querySelector('textarea');
+                        
+                        textarea.addEventListener('input', (e) => {
+                            if (e.target.value.endsWith('@')) {
+                                openMentionModal('comment', (selectedUser) => {
+                                    const text = e.target.value;
+                                    e.target.value = text.slice(0, -1) + `@${selectedUser.displayName} `;
+                                    currentMentions.push({ uid: selectedUser.id, displayName: selectedUser.displayName });
+                                    e.target.focus();
+                                });
+                            }
+                        });
+
+                        commentForm.addEventListener('submit', async (e) => {
+                            e.preventDefault();
+                            const commentText = textarea.value.trim();
+                            if (commentText && currentUser) {
+                                const newComment = {
+                                    text: commentText,
+                                    authorId: currentUser.uid,
+                                    authorName: currentUser.displayName,
+                                    authorPhotoURL: currentUser.photoURL,
+                                    createdAt: serverTimestamp(),
+                                    mentions: currentMentions,
+                                    eventId: eventId,
+                                    eventName: currentEventData.nome
+                                };
+                                const commentsColRef = collection(db, 'dynamic_events', eventId, 'comments');
+                                await addDoc(commentsColRef, newComment);
+                                
+                                currentMentions.forEach(mention => {
+                                    const message = `${currentUser.displayName} mencionou você num comentário em: "${currentEventData.nome}"`;
+                                    sendMentionNotification(mention.uid, eventId, currentEventData.nome, message);
+                                });
+                                
+                                e.target.reset();
+                                currentMentions = [];
+                            }
+                        });
+                    }
+                    
+                    containerEl.querySelectorAll('.comment-delete-btn').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            const eventId = btn.dataset.eventId;
+                            const commentId = btn.dataset.commentId;
+                            if(confirm('Tem a certeza que quer apagar este comentário?')) {
+                                const commentRef = doc(db, 'dynamic_events', eventId, 'comments', commentId);
+                                await deleteDoc(commentRef);
+                            }
+                        });
+                    });
+
+                });
+                
+                activeCommentListeners.push(unsubscribe);
+            };
+
+            const setUserEventStatus = async (eventId, eventName, eventStartDate, status, oldStatus) => {
+                if (!currentUser) return;
+                const statusRef = doc(db, 'dynamic_events', eventId, 'status', currentUser.uid);
+                
+                if (status === null) {
+                    try {
+                        await deleteDoc(statusRef);
+                    } catch (error) {
+                         console.error("Erro ao remover o status do evento:", error);
+                    }
+                } else {
+                    try {
+                        await setDoc(statusRef, {
+                            status: status,
+                            authorId: currentUser.uid,
+                            authorName: currentUser.displayName,
+                            eventId: eventId,
+                            eventName: eventName,
+                            eventStartDate: eventStartDate,
+                            updatedAt: serverTimestamp()
+                        }, { merge: true });
+                        const chatEnabledStatuses = ["Em projeto", "Criado!"];
+                        if (chatEnabledStatuses.includes(status) && !chatEnabledStatuses.includes(oldStatus)) {
+                            showChatEntryToast(eventName);
+                        }
+                    } catch (error) {
+                        console.error("Erro ao definir o status do evento:", error);
+                    }
+                }
+            };
+            
             const showDayDetails = (dateStr, events) => {
+                cleanupCommentListeners();
                 detailsPanel.dataset.date = dateStr;
                 const date = parseDate(dateStr);
                 detailsTitle.textContent = `Eventos de ${date.toLocaleDateString('pt-BR', { timeZone: 'UTC', dateStyle: 'full' })}`;
@@ -649,22 +1260,41 @@
 
                         const isReminderSet = savedReminders.includes(getEventUniqueId(event));
                         const canDelete = event.isDynamic && currentUser && event.creatorId === currentUser.uid;
+                        const canInteract = currentUser && event.isDynamic;
 
                         contentHtml += `
-                            <div class="flex items-center space-x-3 mb-4">
-                                <div class="event-card-clickable relative flex-1 bg-gray-700 p-4 rounded-lg cursor-pointer transition-colors hover:bg-gray-600" 
-                                    data-name="${event.nome}" data-category="${event.categoria}" data-start="${event.data_inicio}" data-end="${event.data_fim}" data-color="${color}" data-event-unique-id="${getEventUniqueId(event)}">
-                                    <div class="flex justify-between items-start mb-2">
-                                        <h3 class="text-lg font-bold text-white flex-1 pr-2">${event.nome}</h3>
-                                        ${statusTag}
+                            <div class="event-details-wrapper bg-gray-700/50 p-4 rounded-lg" data-event-id="${event.isDynamic ? event.id : ''}">
+                                <div class="flex items-start space-x-3 mb-4">
+                                    <div class="event-card-clickable relative flex-1 bg-gray-700 p-4 rounded-lg cursor-pointer transition-colors hover:bg-gray-600" 
+                                        data-name="${event.nome}" data-category="${event.categoria}" data-start="${event.data_inicio}" data-end="${event.data_fim}" data-color="${color}" data-event-unique-id="${getEventUniqueId(event)}">
+                                        <div class="flex justify-between items-start mb-2">
+                                            <h3 class="text-lg font-bold text-white flex-1 pr-2">${event.nome}</h3>
+                                            ${statusTag}
+                                        </div>
+                                        <p class="text-sm text-indigo-400 font-semibold">${event.categoria}</p>
+                                        <p class="text-sm text-gray-300 mt-2">${event.descricao || ''}</p>
+                                        ${canDelete ? `<button class="dynamic-event-delete-btn" data-id="${event.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>` : ''}
                                     </div>
-                                    <p class="text-sm text-indigo-400 font-semibold">${event.categoria}</p>
-                                    <p class="text-sm text-gray-300 mt-2">${event.descricao}</p>
-                                    ${canDelete ? `<button class="dynamic-event-delete-btn" data-id="${event.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>` : ''}
+                                    <div class="flex flex-col space-y-2 relative">
+                                        <button class="reminder-bell ${isReminderSet ? 'active' : ''} p-2 rounded-full hover:bg-gray-600 flex-shrink-0" data-event-unique-id="${getEventUniqueId(event)}" title="Ativar/Desativar lembrete">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22a2.98 2.98 0 002.818-2H9.182A2.98 2.98 0 0012 22zm7-7v-5.273A6.994 6.994 0 0013 2.127V2a1 1 0 00-2 0v.127A6.994 6.994 0 005 9.727V15l-2 2v1h18v-1l-2-2z"/></svg>
+                                        </button>
+                                        ${canInteract ? `
+                                        <button class="mention-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0" data-event-id="${event.id}" data-event-name="${event.nome}" title="Mencionar utilizador">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M16 14.5c2.485 0 4.5-2.015 4.5-4.5S18.485 5.5 16 5.5s-4.5 2.015-4.5 4.5c0 .335.045.66.125.97L3 17.5v3.5h3.5l8.03-8.03c.31.08.635.125.97.125zM10 21H5v-5l9-9 5 5-9 9z"/></svg>
+                                        </button>
+                                        <button class="status-icon-btn status-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0" data-event-id="${event.id}" title="Definir Status">
+                                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v2a2 2 0 01-2 2H7a2 2 0 01-2-2V4zm11.293 3.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L9 12.586l6.293-6.293a1 1 0 011.414 0z"></path></svg>
+                                        </button>
+                                        <div class="status-popup absolute right-full top-0 mr-2 w-40 bg-gray-900 border border-gray-700 rounded-lg shadow-xl hidden z-10 p-2 space-y-1">
+                                            <button data-status="Criado!" class="w-full text-left text-sm p-2 rounded hover:bg-green-500/20 text-green-400">Criado!</button>
+                                            <button data-status="Em projeto" class="w-full text-left text-sm p-2 rounded hover:bg-amber-500/20 text-amber-400">Em projeto</button>
+                                            <button data-status="Não utilizarei" class="w-full text-left text-sm p-2 rounded hover:bg-red-500/20 text-red-400">Não utilizarei</button>
+                                        </div>
+                                        ` : ''}
+                                    </div>
                                 </div>
-                                <button class="reminder-bell ${isReminderSet ? 'active' : ''} p-2 rounded-full hover:bg-gray-600 flex-shrink-0" data-event-unique-id="${getEventUniqueId(event)}" title="Ativar/Desativar lembrete">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22a2.98 2.98 0 002.818-2H9.182A2.98 2.98 0 0012 22zm7-7v-5.273A6.994 6.994 0 0013 2.127V2a1 1 0 00-2 0v.127A6.994 6.994 0 005 9.727V15l-2 2v1h18v-1l-2-2z"/></svg>
-                                </button>
+                                ${event.isDynamic ? `<div id="comments-section-${event.id}" class="mt-4"></div>` : ''}
                             </div>`;
                     });
                 } else {
@@ -674,9 +1304,73 @@
                 detailsContent.innerHTML = contentHtml;
                 detailsPanel.classList.add('open');
 
+                eventsOnDay.forEach(event => {
+                    if (event.isDynamic) {
+                        const commentsContainer = document.getElementById(`comments-section-${event.id}`);
+                        if (commentsContainer) {
+                            loadCommentsUI(event.id, commentsContainer);
+                        }
+
+                        const statusBtn = detailsContent.querySelector(`.status-icon-btn[data-event-id="${event.id}"]`);
+                        if(statusBtn) {
+                            let currentStatus = null;
+                            const statusDocRef = doc(db, 'dynamic_events', event.id, 'status', currentUser.uid);
+                            getDoc(statusDocRef).then(docSnap => {
+                                if (docSnap.exists()) {
+                                    currentStatus = docSnap.data().status;
+                                    statusBtn.className = 'status-icon-btn status-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0';
+                                    statusBtn.classList.add(projectStatusConfig[currentStatus].class);
+                                }
+                            });
+
+                            const statusPopup = statusBtn.nextElementSibling;
+                            statusBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                document.querySelectorAll('.status-popup').forEach(p => {
+                                    if (p !== statusPopup) p.classList.add('hidden');
+                                });
+                                statusPopup.classList.toggle('hidden');
+                            });
+
+                            statusPopup.querySelectorAll('button').forEach(button => {
+                                button.addEventListener('click', async () => {
+                                    const newStatus = button.dataset.status;
+                                    const oldStatus = currentStatus;
+                                    if (newStatus === currentStatus) {
+                                        await setUserEventStatus(event.id, null, null, null, oldStatus);
+                                        currentStatus = null;
+                                        statusBtn.className = 'status-icon-btn status-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0';
+                                    } else {
+                                        await setUserEventStatus(event.id, event.nome, event.data_inicio, newStatus, oldStatus);
+                                        currentStatus = newStatus;
+                                        statusBtn.className = 'status-icon-btn status-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0';
+                                        statusBtn.classList.add(projectStatusConfig[newStatus].class);
+                                    }
+                                    statusPopup.classList.add('hidden');
+                                });
+                            });
+
+                            statusBtn.addEventListener('mouseenter', (e) => {
+                                clearTimeout(statusTooltipTimer);
+                                statusTooltipTimer = setTimeout(async () => {
+                                    showStatusTooltip(statusBtn, event.id);
+                                }, 1000);
+                            });
+                            statusBtn.addEventListener('mouseleave', () => {
+                                clearTimeout(statusTooltipTimer);
+                                setTimeout(() => {
+                                    if (!statusTooltip.matches(':hover')) {
+                                        statusTooltip.classList.add('hidden');
+                                    }
+                                }, 300);
+                            });
+                        }
+                    }
+                });
+                
                 detailsContent.querySelectorAll('.event-card-clickable').forEach(card => {
                     card.addEventListener('click', (e) => {
-                        if (e.target.closest('.reminder-bell') || e.target.closest('.dynamic-event-delete-btn')) {
+                        if (e.target.closest('.reminder-bell') || e.target.closest('.dynamic-event-delete-btn') || e.target.closest('.mention-icon') || e.target.closest('.status-icon-btn')) {
                             return;
                         }
                         clearActiveTrail(); 
@@ -699,6 +1393,15 @@
                         if (eventData) {
                             toggleReminder(eventData);
                         }
+                    });
+                });
+                
+                detailsContent.querySelectorAll('.mention-icon').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                         e.stopPropagation();
+                         const eventId = btn.dataset.eventId;
+                         const eventName = btn.dataset.eventName;
+                         openMentionModal('event', { eventId, eventName });
                     });
                 });
 
@@ -736,10 +1439,9 @@
                 
                 categoryFiltersContainer.innerHTML = filterHtml;
                 
-                // Popula o select do modal de adicionar evento
                 let categoryOptions = '';
                  Object.keys(sportConfigs).forEach(cat => {
-                    if (cat !== 'Criado por Utilizador') { // Não permite que o user selecione esta categoria manualmente
+                    if (cat !== 'Criado por Utilizador') {
                         categoryOptions += `<option value="${cat}">${cat}</option>`;
                     }
                  });
@@ -878,7 +1580,7 @@
                     showUrgencyModal(sorted);
                 }
             };
-
+            
             const applyFilters = () => {
                 const selectedCategoryRadio = document.querySelector('.category-filter:checked');
                 if(!selectedCategoryRadio) return;
@@ -905,6 +1607,7 @@
             };
 
             const initializeApp = () => {
+                checkUrlForEvent();
                 document.body.classList.add('loaded');
                 listenForDynamicEvents();
                 populateFilters();
@@ -915,7 +1618,6 @@
                     }, 100 + (index * 50));
                 });
                 applyFilters();
-                // CORREÇÃO: Reactivar o pop-up de eventos futuros
                 setTimeout(checkAndNotifyUpcomingEvents, 1500);
             };
 
@@ -960,7 +1662,6 @@
                     return;
                 }
                 
-                // CORREÇÃO: Usar o valor selecionado no seletor de categoria
                 const eventData = {
                     creatorName: creatorNameInput.value,
                     nome: document.getElementById('event-name').value,
@@ -990,61 +1691,753 @@
                 matchDateInput.required = isMatch;
             });
 
-
-            // --- AUTH EVENT LISTENERS ---
-             onAuthStateChanged(auth, (user) => {
-                currentUser = user;
-                if (user) {
-                    userProfileArea.classList.remove('hidden');
-                    loginButton.classList.add('hidden');
-                    addEventBtn.style.visibility = 'visible';
-                    userPhoto.src = user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=374151&color=fff`;
-                    userName.textContent = user.displayName || user.email;
-                } else {
-                    userProfileArea.classList.add('hidden');
-                    loginButton.classList.remove('hidden');
-                     addEventBtn.style.visibility = 'hidden';
-                    userName.textContent = '';
-                    userPhoto.src = '';
-                }
-                updateAllEvents(); // Re-render to show/hide delete buttons
-            });
-
-            loginButton.addEventListener('click', () => signInWithPopup(auth, new GoogleAuthProvider()));
-            logoutButton.addEventListener('click', () => signOut(auth));
+            const openSetPasswordModal = () => {
+                setPasswordModalOverlay.classList.remove('hidden');
+                setTimeout(() => document.getElementById('set-password-modal').classList.remove('scale-95', 'opacity-0'), 10);
+            };
             
+            const closeSetPasswordModal = () => {
+                document.getElementById('set-password-modal').classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    setPasswordModalOverlay.classList.add('hidden');
+                    setPasswordForm.reset();
+                    passwordErrorMsg.classList.add('hidden');
+                }, 300);
+            };
+
+            const fetchAllUsers = async () => {
+                try {
+                    const querySnapshot = await getDocs(usersCollection);
+                    allUsers = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                } catch (error) {
+                    console.error("Erro ao buscar utilizadores:", error);
+                }
+            };
+            
+            const sendMentionNotification = async (recipientUid, eventId, eventName, message) => {
+                if (!currentUser || currentUser.uid === recipientUid) return;
+
+                const notificationData = {
+                    mentionerUid: currentUser.uid,
+                    mentionerName: currentUser.displayName,
+                    recipientUid: recipientUid,
+                    eventId: eventId,
+                    eventName: eventName,
+                    message: message,
+                    read: false,
+                    createdAt: serverTimestamp()
+                };
+                try {
+                    await addDoc(notificationsCollection, notificationData);
+                    mentionFeedbackEl.textContent = `Notificação enviada!`;
+                    mentionFeedbackEl.classList.remove('hidden');
+                    setTimeout(() => mentionFeedbackEl.classList.add('hidden'), 3000);
+                } catch (error) {
+                     console.error("Erro ao enviar notificação:", error);
+                     mentionFeedbackEl.textContent = `Erro ao enviar notificação.`;
+                     mentionFeedbackEl.classList.remove('hidden', 'text-green-400').add('text-red-400');
+                     setTimeout(() => mentionFeedbackEl.classList.add('hidden'), 3000);
+                }
+            };
+
+            const renderMentionUserList = (searchTerm) => {
+                mentionUserListEl.innerHTML = '';
+                const lowerCaseSearchTerm = searchTerm.toLowerCase();
+
+                const filteredUsers = allUsers.filter(user => 
+                    user.id !== currentUser?.uid && 
+                    (user.displayName?.toLowerCase().includes(lowerCaseSearchTerm) || user.email?.toLowerCase().includes(lowerCaseSearchTerm))
+                );
+
+                if (filteredUsers.length === 0) {
+                    mentionUserListEl.innerHTML = `<p class="text-gray-400 text-center">Nenhum utilizador encontrado.</p>`;
+                    return;
+                }
+
+                filteredUsers.forEach(user => {
+                    const userEl = document.createElement('div');
+                    userEl.className = 'flex items-center justify-between p-2 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600';
+                    userEl.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <img src="${user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'U'}`}" alt="Foto de ${user.displayName}" class="w-8 h-8 rounded-full">
+                            <span class="font-medium">${user.displayName || user.email}</span>
+                        </div>
+                        <button class="mention-btn bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold py-1 px-3 rounded-full">Mencionar</button>
+                    `;
+                    userEl.addEventListener('click', (e) => {
+                        if (mentionCallback) {
+                            mentionCallback(user);
+                        }
+                    });
+                    mentionUserListEl.appendChild(userEl);
+                });
+            };
+
+            const openMentionModal = (context, data) => {
+                if (!currentUser) {
+                    alert('Você precisa estar logado para mencionar alguém.');
+                    return;
+                }
+
+                renderMentionUserList('');
+                
+                if (context === 'event') {
+                    mentionModalTitle.textContent = "Mencionar em Evento";
+                    mentionContextText.innerHTML = `Mencionar em: <span class="font-bold text-indigo-400">${data.eventName}</span>`;
+                    mentionContextText.classList.remove('hidden');
+                    mentionCallback = (selectedUser) => {
+                        const message = `${currentUser.displayName} mencionou você no evento: "${data.eventName}"`;
+                        sendMentionNotification(selectedUser.id, data.eventId, data.eventName, message);
+                        renderMentionUserList(mentionUserSearchInput.value);
+                    };
+                } else if (context === 'comment' || context === 'chat') {
+                    mentionModalTitle.textContent = `Mencionar em ${context === 'comment' ? 'Comentário' : 'Chat'}`;
+                    mentionContextText.classList.add('hidden');
+                    mentionCallback = (selectedUser) => {
+                        data(selectedUser);
+                        closeMentionModal();
+                    };
+                }
+                
+                mentionModalOverlay.classList.remove('hidden');
+                setTimeout(() => document.getElementById('mention-modal').classList.remove('scale-95', 'opacity-0'), 10);
+            };
+
+            const closeMentionModal = () => {
+                document.getElementById('mention-modal').classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    mentionModalOverlay.classList.add('hidden');
+                    mentionUserSearchInput.value = '';
+                    mentionCallback = null;
+                }, 300);
+            };
+
+            const openMyEventsPanel = async () => {
+                if (!currentUser) return;
+                
+                myEventsContent.innerHTML = '<p class="text-gray-400">A carregar eventos...</p>';
+                myEventsPanel.classList.add('open');
+
+                const q = query(
+                    collectionGroup(db, 'status'), 
+                    where('authorId', '==', currentUser.uid),
+                    orderBy('updatedAt', 'desc')
+                );
+
+                try {
+                    const querySnapshot = await getDocs(q);
+                    if (querySnapshot.empty) {
+                        myEventsContent.innerHTML = '<p class="text-gray-400">Ainda não marcou nenhum evento.</p>';
+                        return;
+                    }
+                    
+                    let contentHtml = '';
+                    querySnapshot.forEach(doc => {
+                        const statusData = doc.data();
+                        const statusClass = projectStatusConfig[statusData.status]?.color || 'text-gray-400';
+                        contentHtml += `
+                            <div class="my-event-item bg-gray-700 p-4 rounded-lg hover:bg-gray-600 transition-colors flex justify-between items-center">
+                                <a href="./eventos.html?eventId=${statusData.eventId}" class="flex-1">
+                                    <p class="font-bold text-white truncate pr-4">${statusData.eventName}</p>
+                                    <span class="text-sm font-semibold ${statusClass}">${statusData.status}</span>
+                                    <p class="text-xs text-gray-400 mt-1">Marcado em: ${new Date(statusData.updatedAt.toDate()).toLocaleDateString('pt-BR')}</p>
+                                </a>
+                                <button class="delete-status-btn p-2 rounded-full hover:bg-red-500/20" data-event-id="${statusData.eventId}" title="Remover marcação">
+                                    <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                </button>
+                            </div>
+                        `;
+                    });
+                    myEventsContent.innerHTML = contentHtml;
+                } catch (error) {
+                    console.error("Erro ao carregar eventos marcados: ", error);
+                    myEventsContent.innerHTML = '<p class="text-red-400">Ocorreu um erro ao carregar os seus eventos. Por favor, verifique se o índice e as regras do Firestore foram criados corretamente e tente novamente.</p>';
+                }
+            };
+
+            const showStatusTooltip = async (triggerElement, eventId) => {
+                const rect = triggerElement.getBoundingClientRect();
+                statusTooltip.style.top = `${rect.top}px`;
+                statusTooltip.style.left = `${rect.left - 10}px`;
+                statusTooltip.style.transform = 'translateX(-100%)';
+                statusTooltip.innerHTML = '<p class="text-gray-400">A carregar...</p>';
+                statusTooltip.classList.remove('hidden');
+
+                try {
+                    const statusQuery = query(collection(db, 'dynamic_events', eventId, 'status'));
+                    const querySnapshot = await getDocs(statusQuery);
+
+                    let tooltipHtml = '';
+                    if(querySnapshot.empty) {
+                        tooltipHtml = '<p class="text-gray-400">Ninguém marcou um status ainda.</p>';
+                    } else {
+                        querySnapshot.forEach(doc => {
+                            const data = doc.data();
+                            const statusClass = projectStatusConfig[data.status]?.color || 'text-gray-400';
+                            tooltipHtml += `<div class="flex items-center justify-between py-1">
+                                              <span>${data.authorName}</span>
+                                              <span class="font-semibold ${statusClass}">${data.status}</span>
+                                          </div>`;
+                        });
+                    }
+                    statusTooltip.innerHTML = tooltipHtml;
+                } catch (error) {
+                    console.error("Erro ao carregar status para o tooltip:", error);
+                    statusTooltip.innerHTML = '<p class="text-red-400">Erro ao carregar.</p>';
+                }
+            };
+
+            const openMyChatsPanel = async () => {
+                if (!currentUser) return;
+                myChatsContent.innerHTML = '<p class="text-gray-400">A procurar chats...</p>';
+                myChatsPanel.classList.add('open');
+
+                const q = query(
+                    collectionGroup(db, 'status'),
+                    where('authorId', '==', currentUser.uid),
+                    where('status', 'in', ['Em projeto', 'Criado!']),
+                    orderBy('updatedAt', 'desc')
+                );
+
+                try {
+                    const querySnapshot = await getDocs(q);
+                    if (querySnapshot.empty) {
+                        myChatsContent.innerHTML = '<p class="text-gray-400">Não participa em nenhum chat de evento. Marque um evento como "Em projeto" ou "Criado!" para começar.</p>';
+                        return;
+                    }
+
+                    const chatItemsHtml = await Promise.all(querySnapshot.docs.map(async (doc) => {
+                        const statusData = doc.data();
+                        const lastRead = statusData.lastRead || null;
+                        
+                        let unreadCount = 0;
+                        const messagesQuery = lastRead 
+                            ? query(collection(db, 'dynamic_events', statusData.eventId, 'messages'), where('createdAt', '>', lastRead))
+                            : query(collection(db, 'dynamic_events', statusData.eventId, 'messages'));
+                        
+                        const unreadSnapshot = await getDocs(messagesQuery);
+                        unreadCount = unreadSnapshot.size;
+
+                        return `
+                            <button class="chat-list-item w-full text-left bg-gray-700 p-4 rounded-lg hover:bg-gray-600 transition-colors flex justify-between items-center" data-event-id="${statusData.eventId}" data-event-name="${statusData.eventName}">
+                                <div>
+                                    <p class="font-bold text-white truncate">${statusData.eventName}</p>
+                                    <p class="text-xs text-gray-400 mt-1">Clique para abrir o chat</p>
+                                </div>
+                                ${unreadCount > 0 ? `<span class="chat-unread-badge">${unreadCount}</span>` : ''}
+                            </button>
+                        `;
+                    }));
+
+                    myChatsContent.innerHTML = chatItemsHtml.join('');
+
+                } catch (error) {
+                    console.error("Erro ao carregar a lista de chats: ", error);
+                    myChatsContent.innerHTML = '<p class="text-red-400">Ocorreu um erro ao carregar os seus chats. Verifique o índice e as regras do Firestore.</p>';
+                }
+            };
+
+            const openChatRoom = async (eventId, eventName) => {
+                chatRoomTitle.textContent = eventName;
+                chatRoomPanel.dataset.eventId = eventId;
+                chatRoomPanel.classList.add('open');
+                myChatsPanel.classList.remove('open');
+                
+                if (activeChatListener) activeChatListener();
+
+                const messagesQuery = query(collection(db, 'dynamic_events', eventId, 'messages'), orderBy('createdAt'));
+                activeChatListener = onSnapshot(messagesQuery, (snapshot) => {
+                    chatMessages.innerHTML = '';
+                    snapshot.forEach(doc => {
+                        const msg = doc.data();
+                        const isMe = msg.authorId === currentUser.uid;
+                        
+                        let msgText = msg.text;
+                        if (msg.mentions && msg.mentions.length > 0) {
+                            msg.mentions.forEach(mention => {
+                                const mentionTag = `@${mention.displayName}`;
+                                msgText = msgText.replace(new RegExp(mentionTag, "g"), `<span class="chat-mention">${mentionTag}</span>`);
+                            });
+                        }
+
+                        const messageEl = document.createElement('div');
+                        messageEl.className = `flex items-start gap-2 ${isMe ? 'justify-end' : 'justify-start'}`;
+                        
+                        const bubble = document.createElement('div');
+                        bubble.className = `chat-message-bubble relative group max-w-xs md:max-w-md`;
+                        
+                        let replyHtml = '';
+                        if (msg.replyTo) {
+                            replyHtml = `
+                                <div class="text-xs p-2 rounded-t-lg border-b-2 border-indigo-400/50 ${isMe ? 'bg-indigo-700' : 'bg-gray-800'}">
+                                    <p class="font-bold">${msg.replyTo.authorName}</p>
+                                    <p class="text-gray-300 truncate">${msg.replyTo.text}</p>
+                                </div>
+                            `;
+                        }
+                        
+                        let reactionsHtml = '<div class="flex gap-1 mt-1">';
+                        if (msg.reactions) {
+                            for (const [emoji, uids] of Object.entries(msg.reactions)) {
+                                if (uids.length > 0) {
+                                    const userHasReacted = uids.includes(currentUser.uid);
+                                    reactionsHtml += `<button class="reaction-chip ${userHasReacted ? 'bg-indigo-500' : 'bg-gray-600'} text-xs px-2 py-0.5 rounded-full" data-msg-id="${doc.id}" data-emoji="${emoji}">${emoji} ${uids.length}</button>`;
+                                }
+                            }
+                        }
+                        reactionsHtml += '</div>';
+
+                        bubble.innerHTML = `
+                            <p class="text-xs text-gray-400 ${isMe ? 'text-right' : 'text-left'} mb-1">${msg.authorName}</p>
+                            <div class="text-white p-3 rounded-lg ${isMe ? 'bg-indigo-600' : 'bg-gray-700'}">
+                                ${replyHtml}
+                                <div class="${replyHtml ? 'pt-2' : ''}">${msgText}</div>
+                            </div>
+                            ${reactionsHtml}
+                            <div class="chat-message-actions absolute top-0 ${isMe ? 'left-0 -translate-x-full' : 'right-0 translate-x-full'} p-1 flex items-center bg-gray-800 rounded-full shadow-lg">
+                                <button class="reaction-picker-btn p-1 rounded-full hover:bg-gray-600" data-msg-id="${doc.id}">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 01-1.415-1.414 3 3 0 00-4.242 0 1 1 0 01-1.415 1.414 5 5 0 017.072 0z" clip-rule="evenodd"></path></svg>
+                                </button>
+                                <button class="reply-btn p-1 rounded-full hover:bg-gray-600" data-msg-id="${doc.id}" data-author-id="${msg.authorId}" data-author-name="${msg.authorName}" data-text="${msg.text}">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.707 3.293a1 1 0 010 1.414L5.414 7H11a7 7 0 017 7v2a1 1 0 11-2 0v-2a5 5 0 00-5-5H5.414l2.293 2.293a1 1 0 11-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                                </button>
+                                ${isMe ? `
+                                <button class="edit-msg-btn p-1 rounded-full hover:bg-gray-600" data-msg-id="${doc.id}" data-text="${msg.text}">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"></path></svg>
+                                </button>
+                                <button class="delete-msg-btn p-1 rounded-full hover:bg-gray-600" data-msg-id="${doc.id}">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                </button>
+                                ` : ''}
+                            </div>
+                        `;
+
+                        if (!isMe) {
+                            messageEl.innerHTML += `<img src="${msg.authorPhotoURL || `https://ui-avatars.com/api/?name=${msg.authorName || 'U'}`}" class="w-8 h-8 rounded-full self-end">`;
+                        }
+                        messageEl.appendChild(bubble);
+                        chatMessages.appendChild(messageEl);
+                    });
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                });
+
+                const statusRef = doc(db, 'dynamic_events', eventId, 'status', currentUser.uid);
+                await updateDoc(statusRef, { lastRead: serverTimestamp() });
+            };
+
+            const listenForUnreadChats = (userId) => {
+                if(activeChatUnreadListener) activeChatUnreadListener();
+
+                const q = query(
+                    collectionGroup(db, 'status'),
+                    where('authorId', '==', userId),
+                    where('status', 'in', ['Em projeto', 'Criado!'])
+                );
+
+                activeChatUnreadListener = onSnapshot(q, async (statusSnapshot) => {
+                    let totalUnread = 0;
+                    for (const statusDoc of statusSnapshot.docs) {
+                        const statusData = statusDoc.data();
+                        const lastRead = statusData.lastRead || null;
+
+                        const messagesQuery = lastRead
+                            ? query(collection(db, 'dynamic_events', statusData.eventId, 'messages'), where('createdAt', '>', lastRead))
+                            : query(collection(db, 'dynamic_events', statusData.eventId, 'messages'));
+                        
+                        const unreadSnapshot = await getDocs(messagesQuery);
+                        totalUnread += unreadSnapshot.size;
+                    }
+                    
+                    if (totalUnread > 0) {
+                        totalUnreadBadge.textContent = totalUnread;
+                        totalUnreadBadge.classList.remove('hidden');
+                    } else {
+                        totalUnreadBadge.classList.add('hidden');
+                    }
+                });
+            };
+
+            const showChatEntryToast = (eventName) => {
+                toastMessage.textContent = `Você entrou no chat do evento: ${eventName}`;
+                chatEntryToast.classList.remove('opacity-0', 'translate-y-10');
+                setTimeout(() => {
+                    chatEntryToast.classList.add('opacity-0', 'translate-y-10');
+                }, 5000);
+            };
+
+            // Event Listeners
+            searchInput.addEventListener('input', (e) => handleSearch(e.target.value));
+            loginButton.addEventListener('click', () => {
+                signInWithPopup(auth, new GoogleAuthProvider());
+            });
+            logoutButton.addEventListener('click', () => {
+                 signOut(auth);
+            });
             userPhoto.addEventListener('click', () => {
                 userDropdown.classList.toggle('hidden');
                 userDropdown.classList.toggle('opacity-0');
                 userDropdown.classList.toggle('scale-95');
             });
+            notificationsBellBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                notificationsExpanded = false;
+                const isHidden = notificationsPanel.classList.toggle('hidden');
+                notificationsPanel.classList.toggle('opacity-0');
+                notificationsPanel.classList.toggle('scale-95');
+                
+                if (!isHidden) {
+                    renderNotificationsPanel(); 
+                }
+            });
+            unreadFilterToggle.addEventListener('change', () => {
+                notificationsExpanded = false;
+                renderNotificationsPanel();
+            });
 
-            // --- GENERAL EVENT LISTENERS ---
-            sidebarToggleBtn.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
-            closeDetailsBtn.addEventListener('click', () => detailsPanel.classList.remove('open'));
-            clearTrailBtn.addEventListener('click', clearActiveTrail);
+            notificationsList.addEventListener('click', async (e) => {
+                const item = e.target.closest('.notification-item');
+                if (item) {
+                    e.preventDefault();
+                    const notificationId = item.dataset.id;
+                    if (notificationId) {
+                        await markSingleNotificationAsRead(notificationId);
+                    }
+                    if (item.href) {
+                        window.location.href = item.href;
+                    }
+                }
+            });
             
+            sidebarToggleBtn.addEventListener('click', () => sidebar.classList.toggle('collapsed'));
+            closeDetailsBtn.addEventListener('click', () => {
+                detailsPanel.classList.remove('open');
+                cleanupCommentListeners();
+            });
+            clearTrailBtn.addEventListener('click', clearActiveTrail);
             if(closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
             if(notificationModalOverlay) notificationModalOverlay.addEventListener('click', (e) => { if(e.target === notificationModalOverlay) closeModal(); });
-
             addEventBtn.addEventListener('click', openAddEventModal);
             closeAddEventModalBtn.addEventListener('click', closeAddEventModal);
             addEventModalOverlay.addEventListener('click', (e) => { if(e.target === addEventModalOverlay) closeAddEventModal(); });
-            
             prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 2); applyFilters(); });
             nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 2); applyFilters(); });
+
+            myEventsLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                userDropdown.classList.add('hidden', 'opacity-0', 'scale-95');
+                openMyEventsPanel();
+            });
+            closeMyEventsBtn.addEventListener('click', () => myEventsPanel.classList.remove('open'));
+            myEventsContent.addEventListener('click', async (e) => {
+                const deleteBtn = e.target.closest('.delete-status-btn');
+                if (deleteBtn) {
+                    const eventId = deleteBtn.dataset.eventId;
+                    if (confirm('Tem a certeza que quer remover a sua marcação deste evento?')) {
+                        await setUserEventStatus(eventId, null, null, null, null);
+                        deleteBtn.closest('.my-event-item').remove();
+                    }
+                }
+            });
             
+            myChatsLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                userDropdown.classList.add('hidden', 'opacity-0', 'scale-95');
+                openMyChatsPanel();
+            });
+            closeMyChatsBtn.addEventListener('click', () => myChatsPanel.classList.remove('open'));
+            myChatsContent.addEventListener('click', (e) => {
+                const chatItem = e.target.closest('.chat-list-item');
+                if (chatItem) {
+                    openChatRoom(chatItem.dataset.eventId, chatItem.dataset.eventName);
+                }
+            });
+
+            backToChatsListBtn.addEventListener('click', () => {
+                chatRoomPanel.classList.remove('open');
+                myChatsPanel.classList.add('open');
+                if(activeChatListener) activeChatListener();
+            });
+
+            leaveChatBtn.addEventListener('click', async () => {
+                const eventId = chatRoomPanel.dataset.eventId;
+                if (confirm('Tem a certeza que quer sair do chat? O seu status será alterado para "Não utilizarei".')) {
+                    await setUserEventStatus(eventId, null, null, "Não utilizarei", null);
+                    chatRoomPanel.classList.remove('open');
+                    openMyChatsPanel();
+                }
+            });
+
+            chatMessageInput.addEventListener('input', (e) => {
+                if (e.target.value.endsWith('@')) {
+                    openMentionModal('chat', (selectedUser) => {
+                        const text = e.target.value;
+                        e.target.value = text.slice(0, -1) + `@${selectedUser.displayName} `;
+                        chatMentions.push({ uid: selectedUser.id, displayName: selectedUser.displayName });
+                        e.target.focus();
+                    });
+                }
+            });
+
+            chatForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const eventId = chatRoomPanel.dataset.eventId;
+                const text = chatMessageInput.value.trim();
+                if (text && eventId) {
+                    chatMessageInput.value = '';
+                    const messageData = {
+                        text: text,
+                        authorId: currentUser.uid,
+                        authorName: currentUser.displayName,
+                        authorPhotoURL: currentUser.photoURL,
+                        createdAt: serverTimestamp(),
+                        mentions: chatMentions,
+                        replyTo: replyingToMessage,
+                        reactions: {}
+                    };
+                    await addDoc(collection(db, 'dynamic_events', eventId, 'messages'), messageData);
+                    
+                    const eventName = chatRoomTitle.textContent;
+                    chatMentions.forEach(mention => {
+                        const message = `${currentUser.displayName} mencionou você no chat: "${eventName}"`;
+                        sendMentionNotification(mention.uid, eventId, eventName, message);
+                    });
+                    
+                    if (replyingToMessage && replyingToMessage.authorId !== currentUser.uid) {
+                        const message = `${currentUser.displayName} respondeu à sua mensagem em: "${eventName}"`;
+                        sendMentionNotification(replyingToMessage.authorId, eventId, eventName, message);
+                    }
+
+                    chatMentions = [];
+                    replyingToMessage = null;
+                    replyPreviewContainer.classList.add('hidden');
+                }
+            });
+
+            toastViewChatBtn.addEventListener('click', openMyChatsPanel);
+            
+            statusTooltip.addEventListener('mouseleave', () => {
+                statusTooltip.classList.add('hidden');
+            });
+
             window.addEventListener('click', (e) => {
-                if (!searchResultsContainer.contains(e.target) && e.target !== searchInput) {
+                if (searchInput && !searchResultsContainer.contains(e.target) && e.target !== searchInput) {
                     searchResultsContainer.classList.add('hidden');
                 }
                 if (userProfileArea && !userProfileArea.contains(e.target)) {
                     userDropdown.classList.add('hidden', 'opacity-0', 'scale-95');
                 }
+                if (notificationsContainer && !notificationsContainer.contains(e.target)) {
+                    notificationsPanel.classList.add('hidden', 'opacity-0', 'scale-95');
+                }
+                document.querySelectorAll('.status-popup').forEach(popup => {
+                    if (!popup.classList.contains('hidden') && !popup.previousElementSibling.contains(e.target)) {
+                        popup.classList.add('hidden');
+                    }
+                });
+                if (reactionSelector && !reactionSelector.contains(e.target) && !e.target.closest('.reaction-picker-btn')) {
+                    reactionSelector.classList.add('hidden');
+                }
+            });
+            
+            setPasswordForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                passwordErrorMsg.classList.add('hidden');
+                const newPassword = document.getElementById('new-password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+
+                if (newPassword !== confirmPassword) {
+                    passwordErrorMsg.textContent = "As senhas não coincidem.";
+                    passwordErrorMsg.classList.remove('hidden');
+                    return;
+                }
+                if (newPassword.length < 6) {
+                    passwordErrorMsg.textContent = "A senha deve ter no mínimo 6 caracteres.";
+                    passwordErrorMsg.classList.remove('hidden');
+                    return;
+                }
+                try {
+                    await updatePassword(currentUser, newPassword);
+                    const userDocRef = doc(db, 'users', currentUser.uid);
+                    await setDoc(userDocRef, { hasSetPassword: true }, { merge: true });
+                    alert('Senha criada com sucesso!');
+                    closeSetPasswordModal();
+                } catch (error) {
+                    console.error("Erro ao criar senha:", error);
+                    passwordErrorMsg.textContent = "Erro ao criar senha. Tente novamente.";
+                    passwordErrorMsg.classList.remove('hidden');
+                }
+            });
+            
+            closeSetPasswordModalBtn.addEventListener('click', closeSetPasswordModal);
+            setPasswordModalOverlay.addEventListener('click', (e) => { if(e.target === setPasswordModalOverlay) closeSetPasswordModal(); });
+
+            mentionUserSearchInput.addEventListener('input', (e) => renderMentionUserList(e.target.value));
+            closeMentionModalBtn.addEventListener('click', closeMentionModal);
+            mentionModalOverlay.addEventListener('click', (e) => { if(e.target === mentionModalOverlay) closeMentionModal(); });
+            
+            chatMembersBtn.addEventListener('click', () => {
+                const eventId = chatRoomPanel.dataset.eventId;
+                openChatMembersPanel(eventId);
+            });
+            closeChatMembersBtn.addEventListener('click', () => chatMembersPanel.classList.remove('open'));
+
+            chatMessages.addEventListener('click', (e) => {
+                const replyBtn = e.target.closest('.reply-btn');
+                const editBtn = e.target.closest('.edit-msg-btn');
+                const deleteBtn = e.target.closest('.delete-msg-btn');
+                const reactionPickerBtn = e.target.closest('.reaction-picker-btn');
+                const reactionChip = e.target.closest('.reaction-chip');
+
+                if (replyBtn) {
+                    replyingToMessage = {
+                        messageId: replyBtn.dataset.msgId,
+                        authorId: replyBtn.dataset.authorId,
+                        authorName: replyBtn.dataset.authorName,
+                        text: replyBtn.dataset.text
+                    };
+                    renderReplyPreview();
+                    chatMessageInput.focus();
+                } else if (editBtn) {
+                    editingMessage = {
+                        eventId: chatRoomPanel.dataset.eventId,
+                        messageId: editBtn.dataset.msgId,
+                        text: editBtn.dataset.text
+                    };
+                    openEditMessageModal(editingMessage.text);
+                } else if (deleteBtn) {
+                    const eventId = chatRoomPanel.dataset.eventId;
+                    const messageId = deleteBtn.dataset.msgId;
+                    if (confirm('Tem a certeza que quer apagar esta mensagem?')) {
+                        const msgRef = doc(db, 'dynamic_events', eventId, 'messages', messageId);
+                        deleteDoc(msgRef);
+                    }
+                } else if (reactionPickerBtn) {
+                    const msgId = reactionPickerBtn.dataset.msgId;
+                    const rect = reactionPickerBtn.getBoundingClientRect();
+                    openReactionSelector(rect.left, rect.top, msgId);
+                } else if (reactionChip) {
+                    const eventId = chatRoomPanel.dataset.eventId;
+                    const messageId = reactionChip.dataset.msgId;
+                    const emoji = reactionChip.dataset.emoji;
+                    toggleReaction(eventId, messageId, emoji);
+                }
             });
 
+            const renderReplyPreview = () => {
+                if (replyingToMessage) {
+                    replyPreviewContainer.innerHTML = `
+                        <div class="flex justify-between items-center text-xs text-gray-400">
+                            <span>Respondendo a ${replyingToMessage.authorName}</span>
+                            <button id="cancel-reply-btn" class="p-1">&times;</button>
+                        </div>
+                        <p class="text-sm text-gray-300 truncate">${replyingToMessage.text}</p>
+                    `;
+                    replyPreviewContainer.classList.remove('hidden');
+                    document.getElementById('cancel-reply-btn').addEventListener('click', () => {
+                        replyingToMessage = null;
+                        replyPreviewContainer.classList.add('hidden');
+                    });
+                } else {
+                    replyPreviewContainer.classList.add('hidden');
+                }
+            };
 
-            // --- INICIALIZAÇÃO ---
+            const openChatMembersPanel = async (eventId) => {
+                chatMembersContent.innerHTML = '<p class="text-gray-400">A carregar membros...</p>';
+                chatMembersPanel.classList.add('open');
+
+                const q = query(collection(db, 'dynamic_events', eventId, 'status'), where('status', 'in', ['Em projeto', 'Criado!']));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    chatMembersContent.innerHTML = '<p class="text-gray-400">Nenhum membro ativo neste chat.</p>';
+                    return;
+                }
+
+                let membersHtml = '';
+                querySnapshot.forEach(doc => {
+                    const member = doc.data();
+                    const user = allUsers.find(u => u.id === member.authorId);
+                    membersHtml += `
+                        <div class="flex items-center gap-3 p-2">
+                            <img src="${user?.photoURL || `https://ui-avatars.com/api/?name=${member.authorName || 'U'}`}" class="w-10 h-10 rounded-full">
+                            <span class="font-medium">${member.authorName}</span>
+                        </div>
+                    `;
+                });
+                chatMembersContent.innerHTML = membersHtml;
+            };
+
+            const openEditMessageModal = (text) => {
+                editMessageTextarea.value = text;
+                editMessageModalOverlay.classList.remove('hidden');
+                setTimeout(() => editMessageModal.classList.remove('scale-95', 'opacity-0'), 10);
+            };
+
+            const closeEditMessageModal = () => {
+                editMessageModal.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    editMessageModalOverlay.classList.add('hidden');
+                    editingMessage = null;
+                }, 300);
+            };
+
+            cancelEditBtn.addEventListener('click', closeEditMessageModal);
+            editMessageModalOverlay.addEventListener('click', (e) => {
+                if(e.target === editMessageModalOverlay) closeEditMessageModal();
+            });
+
+            editMessageForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (editingMessage) {
+                    const newText = editMessageTextarea.value.trim();
+                    if (newText) {
+                        const msgRef = doc(db, 'dynamic_events', editingMessage.eventId, 'messages', editingMessage.messageId);
+                        await updateDoc(msgRef, { text: newText });
+                    }
+                    closeEditMessageModal();
+                }
+            });
+
+            const toggleReaction = async (eventId, messageId, emoji) => {
+                if (!currentUser) return;
+                const msgRef = doc(db, 'dynamic_events', eventId, 'messages', messageId);
+                const msgDoc = await getDoc(msgRef);
+                if (!msgDoc.exists()) return;
+
+                const reactions = msgDoc.data().reactions || {};
+                const usersForEmoji = reactions[emoji] || [];
+
+                if (usersForEmoji.includes(currentUser.uid)) {
+                    await updateDoc(msgRef, {
+                        [`reactions.${emoji}`]: arrayRemove(currentUser.uid)
+                    });
+                } else {
+                    await updateDoc(msgRef, {
+                        [`reactions.${emoji}`]: arrayUnion(currentUser.uid)
+                    });
+                }
+            };
+            
+            const openReactionSelector = (x, y, msgId) => {
+                reactionSelector.style.left = `${x}px`;
+                reactionSelector.style.top = `${y}px`;
+                reactionSelector.style.transform = `translate(-50%, -110%)`;
+                reactionSelector.classList.remove('hidden');
+                reactionSelector.dataset.msgId = msgId;
+            };
+
+            reactionSelector.addEventListener('click', (e) => {
+                const button = e.target.closest('.reaction-option');
+                if (button) {
+                    const emoji = button.textContent;
+                    const eventId = chatRoomPanel.dataset.eventId;
+                    const messageId = reactionSelector.dataset.msgId;
+                    toggleReaction(eventId, messageId, emoji);
+                    reactionSelector.classList.add('hidden');
+                }
+            });
+
             initializeApp();
         });
     </script>
