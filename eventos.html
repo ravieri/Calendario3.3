@@ -193,6 +193,51 @@
         .chat-message-bubble:hover .chat-message-actions {
             opacity: 1;
         }
+        /* Estilos para o seletor de visualização */
+        .view-switcher {
+            display: inline-flex;
+            background-color: #374151; /* gray-700 */
+            border-radius: 0.5rem;
+            padding: 0.25rem;
+        }
+        .view-switcher button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #d1d5db; /* gray-300 */
+            transition: background-color 0.2s, color 0.2s;
+            border: none;
+            background-color: transparent;
+        }
+        .view-switcher button.active {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        /* Estilos para a visualização de semana */
+        #week-view-container {
+            display: none; /* Começa oculto */
+        }
+        .week-day-column {
+            background-color: #1f2937; /* gray-800 */
+            border-radius: 0.5rem;
+            padding: 1rem;
+            min-height: 400px;
+        }
+        .week-event-card {
+            background-color: #374151; /* gray-700 */
+            border-left: 4px solid; /* A cor será definida dinamicamente */
+            padding: 0.75rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .week-event-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
     </style>
 </head>
 <body class="text-gray-200">
@@ -276,7 +321,7 @@
                 <div class="flex items-center justify-center mb-2">
                     <h1 class="text-3xl font-bold text-white text-center">Calendário de Eventos</h1>
                 </div>
-                <div class="max-w-xl mx-auto mb-6 relative z-20">
+                <div class="max-w-xl mx-auto mb-4 relative z-20">
                     <div class="relative">
                         <input type="text" id="event-search-input" placeholder="Pesquisar evento por nome..." class="w-full bg-gray-800 border-2 border-gray-700 rounded-lg py-2 px-4 text-white focus:outline-none focus:border-indigo-500 transition-colors">
                         <svg class="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -286,6 +331,15 @@
                     <div id="search-results" class="absolute w-full mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-lg hidden">
                     </div>
                 </div>
+                
+                <!-- NOVO: Seletor de Visualização -->
+                <div class="flex justify-center mb-6 z-10 relative">
+                    <div class="view-switcher" id="view-switcher">
+                        <button data-view="month" class="active">Mês</button>
+                        <button data-view="week">Semana</button>
+                    </div>
+                </div>
+
                 <div id="calendar-background-particles"></div>
                 <div id="active-trail-info" class="max-w-3xl mx-auto mb-6 p-3 rounded-lg bg-gray-800 border border-gray-700 items-center justify-between hidden">
                     <div class="flex items-center gap-4">
@@ -302,31 +356,48 @@
                         </svg>
                     </button>
                 </div>
-                <div id="calendars-container" class="relative flex justify-center items-start gap-8">
+                
+                <!-- Container da Visualização Mensal -->
+                <div id="month-view-container">
                     <div id="next-event-prompt" class="absolute inset-0 flex-col items-center justify-center bg-black bg-opacity-75 hidden z-20 rounded-lg p-8 text-center">
                         <p id="prompt-title" class="text-2xl font-bold text-white mb-4"></p>
                         <button id="jump-to-event-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg text-lg flex items-center transition-transform transform hover:scale-105">
                             <span id="jump-text"></span><span id="jump-date" class="ml-2 font-black"></span>
                         </button>
                     </div>
-                    <div id="calendar-1" class="w-full max-w-xl">
-                        <div class="flex items-center justify-center relative mb-4">
-                            <button id="prev-month" class="absolute left-0 p-2 rounded-full hover:bg-gray-700 text-white z-10">&lt;</button>
-                            <h2 id="month-year-header-1" class="text-2xl font-bold"></h2>
+                    <div id="calendars-container" class="relative flex justify-center items-start gap-8">
+                        <div id="calendar-1" class="w-full max-w-xl">
+                            <div class="flex items-center justify-center relative mb-4">
+                                <button id="prev-month" class="absolute left-0 p-2 rounded-full hover:bg-gray-700 text-white z-10">&lt;</button>
+                                <h2 id="month-year-header-1" class="text-2xl font-bold"></h2>
+                            </div>
+                            <div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
+                            <div id="calendar-grid-1" class="grid grid-cols-7 gap-2"></div>
                         </div>
-                        <div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
-                        <div id="calendar-grid-1" class="grid grid-cols-7 gap-2"></div>
-                    </div>
-                    <div class="h-auto self-stretch border-l border-gray-700"></div>
-                    <div id="calendar-2" class="w-full max-w-xl">
-                        <div class="flex items-center justify-center relative mb-4">
-                            <h2 id="month-year-header-2" class="text-2xl font-bold"></h2>
-                            <button id="next-month" class="absolute right-0 p-2 rounded-full hover:bg-gray-700 text-white z-10">&gt;</button>
+                        <div class="h-auto self-stretch border-l border-gray-700"></div>
+                        <div id="calendar-2" class="w-full max-w-xl">
+                            <div class="flex items-center justify-center relative mb-4">
+                                <h2 id="month-year-header-2" class="text-2xl font-bold"></h2>
+                                <button id="next-month" class="absolute right-0 p-2 rounded-full hover:bg-gray-700 text-white z-10">&gt;</button>
+                            </div>
+                            <div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
+                            <div id="calendar-grid-2" class="grid grid-cols-7 gap-2"></div>
                         </div>
-                        <div class="grid grid-cols-7 gap-4 text-center text-gray-400 font-semibold mb-2"><div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div></div>
-                        <div id="calendar-grid-2" class="grid grid-cols-7 gap-2"></div>
                     </div>
                 </div>
+
+                <!-- NOVO: Container da Visualização Semanal -->
+                <div id="week-view-container" class="relative">
+                    <div class="flex items-center justify-between mb-4">
+                        <button id="prev-week" class="p-2 rounded-full hover:bg-gray-700 text-white z-10">&lt; Semana Anterior</button>
+                        <h2 id="week-header" class="text-2xl font-bold text-center"></h2>
+                        <button id="next-week" class="p-2 rounded-full hover:bg-gray-700 text-white z-10">Próxima Semana &gt;</button>
+                    </div>
+                    <div id="week-grid" class="grid grid-cols-1 md:grid-cols-7 gap-2">
+                        <!-- As colunas dos dias da semana serão injetadas aqui -->
+                    </div>
+                </div>
+
             </main>
         </div>
 
@@ -619,14 +690,24 @@
             const editMessageTextarea = document.getElementById('edit-message-textarea');
             const cancelEditBtn = document.getElementById('cancel-edit-btn');
             const reactionSelector = document.getElementById('reaction-selector');
+            
+            // NOVOS Elementos para visualização de semana
+            const viewSwitcher = document.getElementById('view-switcher');
+            const monthViewContainer = document.getElementById('month-view-container');
+            const weekViewContainer = document.getElementById('week-view-container');
+            const prevWeekBtn = document.getElementById('prev-week');
+            const nextWeekBtn = document.getElementById('next-week');
+            const weekHeader = document.getElementById('week-header');
+            const weekGrid = document.getElementById('week-grid');
+
 
             const sportConfigs = {
-                'Futebol': { particleColor: '#22c55e', color: 'bg-green-500' }, 
-                'Basquete': { particleColor: '#f97316', color: 'bg-orange-500' }, 
-                'Tênis': { particleColor: '#eab308', color: 'bg-yellow-500' }, 
-                'Outros Esportes': { particleColor: '#0ea5e9', color: 'bg-sky-500' }, 
-                'eSports': { particleColor: '#a855f7', color: 'bg-purple-500' },
-                'Criado por Utilizador': { particleColor: '#ec4899', color: 'bg-pink-500' }
+                'Futebol': { particleColor: '#22c55e', color: 'bg-green-500', borderColor: 'border-green-500' }, 
+                'Basquete': { particleColor: '#f97316', color: 'bg-orange-500', borderColor: 'border-orange-500' }, 
+                'Tênis': { particleColor: '#eab308', color: 'bg-yellow-500', borderColor: 'border-yellow-500' }, 
+                'Outros Esportes': { particleColor: '#0ea5e9', color: 'bg-sky-500', borderColor: 'border-sky-500' }, 
+                'eSports': { particleColor: '#a855f7', color: 'bg-purple-500', borderColor: 'border-purple-500' },
+                'Criado por Utilizador': { particleColor: '#ec4899', color: 'bg-pink-500', borderColor: 'border-pink-500' }
             };
 
             const projectStatusConfig = {
@@ -651,6 +732,11 @@
             let chatMentions = [];
             let replyingToMessage = null;
             let editingMessage = null;
+            
+            // NOVO: Estado da aplicação
+            let currentView = 'month'; // 'month' ou 'week'
+            let currentDate = new Date(); // Para visualização de mês
+            let currentWeekDate = new Date(); // Para visualização de semana
 
             const checkUrlForEvent = () => {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -671,7 +757,6 @@
                 console.error('Erro ao carregar dados dos eventos:', error);
             }
             
-            let currentDate = new Date();
             let allEvents = [];
             let savedReminders = JSON.parse(localStorage.getItem('eventReminders')) || []; 
             let activeTrail = null; 
@@ -790,7 +875,7 @@
 
             const updateAllEvents = () => {
                 allEvents = [...staticEvents, ...dynamicEvents];
-                applyFilters();
+                applyFilters(); // This will now call renderCalendar
                 const openDate = detailsPanel.dataset.date;
                 if (detailsPanel.classList.contains('open') && openDate) {
                     showDayDetails(openDate, allEvents);
@@ -911,6 +996,19 @@
                  }
             }
             
+            // FUNÇÃO PRINCIPAL DE RENDERIZAÇÃO
+            const renderCalendar = (filteredEvents) => {
+                if (currentView === 'month') {
+                    monthViewContainer.style.display = 'block';
+                    weekViewContainer.style.display = 'none';
+                    renderTwoMonths(new Date(currentDate), filteredEvents);
+                } else {
+                    monthViewContainer.style.display = 'none';
+                    weekViewContainer.style.display = 'block';
+                    renderWeekView(new Date(currentWeekDate), filteredEvents);
+                }
+            };
+
             const renderSingleCalendar = (gridId, headerId, date, events) => {
                 const calendarGrid = document.getElementById(gridId);
                 const monthYearHeader = document.getElementById(headerId);
@@ -993,6 +1091,71 @@
                 });
             }
              
+            // FUNÇÃO DE SEMANA MODIFICADA
+            const renderWeekView = (date, events) => {
+                weekGrid.innerHTML = '';
+                const startOfWeek = new Date(date);
+                startOfWeek.setDate(startOfWeek.getDate() - date.getDay()); // Inicia no Domingo
+
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6);
+
+                weekHeader.textContent = `${formatDisplayDate(startOfWeek.toISOString().split('T')[0])} - ${formatDisplayDate(endOfWeek.toISOString().split('T')[0])}`;
+
+                const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+                for(let i = 0; i < 7; i++) {
+                    const dayDate = new Date(startOfWeek);
+                    dayDate.setDate(startOfWeek.getDate() + i);
+                    const dateStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
+                    
+                    const dayColumn = document.createElement('div');
+                    dayColumn.className = 'week-day-column';
+
+                    const today = new Date();
+                    const isToday = dayDate.getFullYear() === today.getFullYear() && dayDate.getMonth() === today.getMonth() && dayDate.getDate() === today.getDate();
+
+                    dayColumn.innerHTML = `<h3 class="font-bold text-lg text-center mb-4 ${isToday ? 'text-indigo-400' : ''}">${weekDays[i]} <span class="text-gray-400 text-base">${dayDate.getDate()}</span></h3>`;
+                    
+                    // MODIFICADO: Filtrar para mostrar eventos apenas nos dias de início ou fim.
+                    const eventsOnDay = events.filter(e => {
+                        return e.data_inicio === dateStr || e.data_fim === dateStr;
+                    });
+                    
+                    const eventsContainer = document.createElement('div');
+                    if (eventsOnDay.length > 0) {
+                        eventsOnDay.forEach(event => {
+                            const borderColor = sportConfigs[event.categoria]?.borderColor || 'border-gray-500';
+                            const eventCard = document.createElement('div');
+                            eventCard.className = `week-event-card ${borderColor}`;
+                            eventCard.dataset.date = dateStr;
+                            
+                            let dateInfo = '';
+                            if (event.data_inicio === dateStr && event.data_fim !== dateStr) {
+                                dateInfo = `<span class="text-xs text-green-400 font-semibold">Início</span>`;
+                            } else if (event.data_fim === dateStr && event.data_inicio !== dateStr) {
+                                dateInfo = `<span class="text-xs text-red-400 font-semibold">Fim</span>`;
+                            }
+                            // Para eventos de dia único, dateInfo permanecerá vazio, o que é o comportamento desejado.
+
+                            eventCard.innerHTML = `
+                                <div class="flex justify-between items-start">
+                                    <p class="font-bold text-white text-sm">${event.nome}</p>
+                                    ${dateInfo}
+                                </div>
+                                <p class="text-xs text-indigo-300 mt-1">${event.categoria}</p>
+                            `;
+                            eventCard.addEventListener('click', () => showDayDetails(dateStr, allEvents));
+                            eventsContainer.appendChild(eventCard);
+                        });
+                    } else {
+                        eventsContainer.innerHTML = `<p class="text-center text-gray-500 text-sm mt-8">Nenhum evento</p>`;
+                    }
+                    dayColumn.appendChild(eventsContainer);
+                    weekGrid.appendChild(dayColumn);
+                }
+            };
+
             const renderSearchResults = (results) => {
                 searchResultsContainer.innerHTML = '';
                 if(results.length === 0) {
@@ -1034,6 +1197,7 @@
                 if(isNaN(eventDate)) return;
 
                 currentDate = new Date(eventDate.getUTCFullYear(), eventDate.getUTCMonth(), 1);
+                currentWeekDate = new Date(eventDate.getUTCFullYear(), eventDate.getUTCMonth(), eventDate.getUTCDate());
                 applyFilters();
                 
                 setTimeout(() => highlightDay(dateStr), 200);
@@ -1460,7 +1624,10 @@
             
             const checkAndShowJumpPrompt = (filteredEvents) => {
                 const nextEventPrompt = document.getElementById('next-event-prompt');
-                if(!nextEventPrompt) return;
+                if(!nextEventPrompt || currentView !== 'month') {
+                    if(nextEventPrompt) nextEventPrompt.classList.add('hidden');
+                    return;
+                };
                 nextEventPrompt.classList.add('hidden');
                 
                 const viewStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
@@ -1605,7 +1772,7 @@
                     loadParticles([color]);
                 }
 
-                renderTwoMonths(new Date(currentDate), filteredEvents);
+                renderCalendar(filteredEvents); // Chama a função de renderização principal
                 checkAndShowJumpPrompt(filteredEvents);
             };
 
@@ -2043,7 +2210,7 @@
                         const statusData = statusDoc.data();
                         const lastRead = statusData.lastRead || null;
 
-                        const messagesQuery = lastRead
+                        const messagesQuery = lastRead 
                             ? query(collection(db, 'dynamic_events', statusData.eventId, 'messages'), where('createdAt', '>', lastRead))
                             : query(collection(db, 'dynamic_events', statusData.eventId, 'messages'));
                         
@@ -2122,8 +2289,33 @@
             addEventBtn.addEventListener('click', openAddEventModal);
             closeAddEventModalBtn.addEventListener('click', closeAddEventModal);
             addEventModalOverlay.addEventListener('click', (e) => { if(e.target === addEventModalOverlay) closeAddEventModal(); });
+            
+            // Navegação Mensal
             prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 2); applyFilters(); });
             nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 2); applyFilters(); });
+
+            // NOVO: Navegação Semanal
+            prevWeekBtn.addEventListener('click', () => { currentWeekDate.setDate(currentWeekDate.getDate() - 7); applyFilters(); });
+            nextWeekBtn.addEventListener('click', () => { currentWeekDate.setDate(currentWeekDate.getDate() + 7); applyFilters(); });
+            
+            // NOVO: Listener para o seletor de visualização
+            viewSwitcher.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+
+                const view = button.dataset.view;
+                if (view === currentView) return;
+
+                currentView = view;
+                
+                // Atualiza o botão ativo
+                viewSwitcher.querySelector('.active').classList.remove('active');
+                button.classList.add('active');
+
+                // Renderiza a nova visualização
+                applyFilters();
+            });
+
 
             myEventsLink.addEventListener('click', (e) => {
                 e.preventDefault();
