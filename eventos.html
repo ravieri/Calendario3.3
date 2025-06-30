@@ -1271,7 +1271,10 @@
                                             <h3 class="text-lg font-bold text-white flex-1 pr-2">${event.nome}</h3>
                                             ${statusTag}
                                         </div>
-                                        <p class="text-sm text-indigo-400 font-semibold">${event.categoria}</p>
+                                        <div class="flex items-center gap-2">
+                                            <p class="text-sm text-indigo-400 font-semibold">${event.categoria}</p>
+                                            ${event.isDynamic ? `<span class="creator-tag text-xs text-amber-400" title="Criado por ${event.creatorName}">👑</span>` : ''}
+                                        </div>
                                         <p class="text-sm text-gray-300 mt-2">${event.descricao || ''}</p>
                                         ${canDelete ? `<button class="dynamic-event-delete-btn" data-id="${event.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>` : ''}
                                     </div>
