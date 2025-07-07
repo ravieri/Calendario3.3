@@ -750,7 +750,7 @@
             };
 
             try {
-                const response = await fetch('./eventos.json');
+                const response = await fetch('../assets/data/eventos.json');
                 const data = await response.json();
                 staticEvents = data.eventos;
             } catch (error) {
