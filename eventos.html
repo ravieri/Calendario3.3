@@ -287,23 +287,42 @@
 <body class="text-gray-200">
 
     <div id="app-wrapper">
-        <div id="main-content" class="flex h-screen overflow-hidden">
-            <aside id="sidebar" class="w-72 bg-gray-900 p-6 flex flex-col space-y-6 overflow-y-auto">
-                <h2 class="text-2xl font-bold text-white whitespace-nowrap">Navegação</h2>
-                <nav>
-                    <ul>
-                        <li class="nav-item"><a href="partidas.html" class="block py-2 px-4 rounded-lg hover:bg-gray-700">Calendário de Partidas</a></li>
-                        <li class="nav-item"><a href="eventos.html" class="block py-2 px-4 rounded-lg bg-indigo-600 text-white">Eventos</a></li>
-                    </ul>
-                </nav>
-                <hr class="border-gray-700">
-                
-                <div id="filter-section">
-                    <h2 class="text-2xl font-bold text-white whitespace-nowrap mb-4">Filtros</h2>
-                    <div id="category-filters" class="space-y-2">
-                        </div>
+    <div id="approval-pending-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-90 backdrop-blur-sm flex items-center justify-center hidden" style="z-index: 9999;">
+    <div class="text-center p-8 bg-gray-800 rounded-2xl shadow-xl max-w-md mx-4">
+        <svg class="mx-auto h-12 w-12 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <h2 class="mt-4 text-2xl font-bold text-white">Aguardando Aprovação</h2>
+        <p class="mt-2 text-gray-400">
+            Seu acesso foi registrado com sucesso! No entanto, ele está pendente de aprovação por um administrador.
+        </p>
+        <p class="mt-4 text-sm text-gray-500">
+            Assim que seu acesso for liberado, esta tela desaparecerá automaticamente.
+        </p>
+
+        <button id="logout-from-pending-btn" class="mt-6 w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400">
+            Sair e continuar como visitante
+        </button>
+        </div>
+</div>
+
+    <div id="main-content" class="flex h-screen overflow-hidden">
+        <aside id="sidebar" class="w-72 bg-gray-900 p-6 flex flex-col space-y-6 overflow-y-auto">
+            <h2 class="text-2xl font-bold text-white whitespace-nowrap">Navegação</h2>
+            <nav>
+                <ul>
+                    <li class="nav-item"><a href="partidas.html" class="block py-2 px-4 rounded-lg hover:bg-gray-700">Calendário de Partidas</a></li>
+                    <li class="nav-item"><a href="eventos.html" class="block py-2 px-4 rounded-lg bg-indigo-600 text-white">Eventos</a></li>
+                </ul>
+            </nav>
+            <hr class="border-gray-700">
+            
+            <div id="filter-section">
+                <h2 class="text-2xl font-bold text-white whitespace-nowrap mb-4">Filtros</h2>
+                <div id="category-filters" class="space-y-2">
                 </div>
-            </aside>
+            </div>
+        </aside>
 
             <main class="flex-1 p-8 overflow-y-auto relative">
                 <button id="sidebar-toggle" class="absolute top-6 left-6 z-30 p-2 rounded-full bg-gray-800 hover:bg-gray-700">
@@ -619,166 +638,171 @@
     </div>
     
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js"; 
-        import { getFirestore, collection, onSnapshot, addDoc, doc, deleteDoc, serverTimestamp, getDocs, setDoc, getDoc, query, where, writeBatch, updateDoc, orderBy, collectionGroup, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js"; 
+    import { getFirestore, collection, onSnapshot, addDoc, doc, deleteDoc, serverTimestamp, getDocs, setDoc, getDoc, query, where, writeBatch, updateDoc, orderBy, collectionGroup, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+    
+    const firebaseConfig = {
+        apiKey: "AIzaSyBGZGzl-vbVAT8lZn--v3cuTYtAs-fy2Os",
+        authDomain: "calendario-eventos-1c3d0.firebaseapp.com",
+        projectId: "calendario-eventos-1c3d0",
+        storageBucket: "calendario-eventos-1c3d0.appspot.com",
+        messagingSenderId: "251278696788",
+        appId: "1:251278696788:web:968b9d906918f5fb4228c1"
+    };
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAmcjEF6zLt_QpiV7Jby-4GcPv9oAnMqv9Ed_JnBJBSCYMMBpyd_hUeBMlUBTAeX8Ruw/exec';
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+    const dynamicEventsCollection = collection(db, 'dynamic_events');
+    const usersCollection = collection(db, 'users');
+    const notificationsCollection = collection(db, 'notifications');
+
+    document.addEventListener('DOMContentLoaded', async () => { 
         
-        const firebaseConfig = {
-            apiKey: "AIzaSyBGZGzl-vbVAT8lZn--v3cuTYtAs-fy2Os",
-            authDomain: "calendario-eventos-1c3d0.firebaseapp.com",
-            projectId: "calendario-eventos-1c3d0",
-            storageBucket: "calendario-eventos-1c3d0.appspot.com",
-            messagingSenderId: "251278696788",
-            appId: "1:251278696788:web:968b9d906918f5fb4228c1"
+        const logoutFromPendingBtn = document.getElementById('logout-from-pending-btn');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+        const categoryFiltersContainer = document.getElementById('category-filters');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
+        const detailsPanel = document.getElementById('day-details-panel');
+        const detailsTitle = document.getElementById('details-title');
+        const detailsContent = document.getElementById('details-content');
+        const closeDetailsBtn = document.getElementById('close-details');
+        const activeTrailInfoPanel = document.getElementById('active-trail-info');
+        const trailEventNameEl = document.getElementById('trail-event-name');
+        const trailEventCategoryEl = document.getElementById('trail-event-category');
+        const trailEventDatesEl = document.getElementById('trail-event-dates');
+        const clearTrailBtn = document.getElementById('clear-trail-btn');
+        const addEventBtn = document.getElementById('add-event-btn');
+        const addEventModalOverlay = document.getElementById('add-event-modal-overlay');
+        const addEventModal = document.getElementById('add-event-modal');
+        const closeAddEventModalBtn = document.getElementById('close-add-event-modal');
+        const addEventForm = document.getElementById('add-event-form');
+        const eventTypeSelect = document.getElementById('event-type');
+        const eventLeagueInput = document.getElementById('event-league');
+        const eventCategorySelect = document.getElementById('event-category');
+        const competitionDatesContainer = document.getElementById('competition-dates');
+        const matchDateContainer = document.getElementById('match-date-container');
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
+        const matchDateInput = document.getElementById('match-date');
+        const creatorNameInput = document.getElementById('creator-name');
+        const loginButton = document.getElementById('login-button');
+        const logoutButton = document.getElementById('logout-button');
+        const userProfileArea = document.getElementById('user-profile-area');
+        const userPhoto = document.getElementById('user-photo');
+        const userName = document.getElementById('user-name');
+        const userDropdown = document.getElementById('user-dropdown');
+        const notificationModalOverlay = document.getElementById('notification-modal-overlay');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const notificationContent = document.getElementById('notification-content');
+        const modalReminderActionMessage = document.getElementById('modal-reminder-action-message');
+        const nextEventPrompt = document.getElementById('next-event-prompt');
+        const promptTitleEl = document.getElementById('prompt-title');
+        const jumpToEventBtn = document.getElementById('jump-to-event-btn');
+        const jumpTextEl = document.getElementById('jump-text');
+        const jumpDateEl = document.getElementById('jump-date');
+        const searchInput = document.getElementById('event-search-input');
+        const searchResultsContainer = document.getElementById('search-results');
+        const setPasswordModalOverlay = document.getElementById('set-password-modal-overlay');
+        const closeSetPasswordModalBtn = document.getElementById('close-set-password-modal');
+        const setPasswordForm = document.getElementById('set-password-form');
+        const passwordErrorMsg = document.getElementById('password-error-msg');
+        const mentionModalOverlay = document.getElementById('mention-modal-overlay');
+        const mentionModalTitle = document.getElementById('mention-modal-title');
+        const mentionContextText = document.getElementById('mention-context-text');
+        const closeMentionModalBtn = document.getElementById('close-mention-modal');
+        const mentionUserSearchInput = document.getElementById('mention-user-search');
+        const mentionUserListEl = document.getElementById('mention-user-list');
+        const mentionFeedbackEl = document.getElementById('mention-feedback');
+        const notificationsContainer = document.getElementById('notifications-container');
+        const notificationsBellBtn = document.getElementById('notifications-bell-btn');
+        const notificationBadge = document.getElementById('notification-badge');
+        const notificationsPanel = document.getElementById('notifications-panel');
+        const notificationsList = document.getElementById('notifications-list');
+        const unreadFilterToggle = document.getElementById('unread-filter-toggle');
+        const myEventsPanel = document.getElementById('my-events-panel');
+        const closeMyEventsBtn = document.getElementById('close-my-events');
+        const myEventsContent = document.getElementById('my-events-content');
+        const myEventsLink = document.getElementById('my-events-link');
+        const myChatsLink = document.getElementById('my-chats-link');
+        const myChatsPanel = document.getElementById('my-chats-panel');
+        const closeMyChatsBtn = document.getElementById('close-my-chats');
+        const myChatsContent = document.getElementById('my-chats-content');
+        const chatRoomPanel = document.getElementById('chat-room-panel');
+        const chatRoomTitle = document.getElementById('chat-room-title');
+        const backToChatsListBtn = document.getElementById('back-to-chats-list');
+        const leaveChatBtn = document.getElementById('leave-chat-btn');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const chatMessageInput = document.getElementById('chat-message-input');
+        const statusTooltip = document.getElementById('status-tooltip');
+        const chatEntryToast = document.getElementById('chat-entry-toast');
+        const toastMessage = document.getElementById('toast-message');
+        const toastViewChatBtn = document.getElementById('toast-view-chat-btn');
+        const totalUnreadBadge = document.getElementById('total-unread-badge');
+        const chatMembersBtn = document.getElementById('chat-members-btn');
+        const chatMembersPanel = document.getElementById('chat-members-panel');
+        const closeChatMembersBtn = document.getElementById('close-chat-members');
+        const chatMembersContent = document.getElementById('chat-members-content');
+        const replyPreviewContainer = document.getElementById('reply-preview-container');
+        const editMessageModalOverlay = document.getElementById('edit-message-modal-overlay');
+        const editMessageModal = document.getElementById('edit-message-modal');
+        const editMessageForm = document.getElementById('edit-message-form');
+        const editMessageTextarea = document.getElementById('edit-message-textarea');
+        const cancelEditBtn = document.getElementById('cancel-edit-btn');
+        const reactionSelector = document.getElementById('reaction-selector');
+        const viewSwitcher = document.getElementById('view-switcher');
+        const monthViewContainer = document.getElementById('month-view-container');
+        const weekViewContainer = document.getElementById('week-view-container');
+        const prevWeekBtn = document.getElementById('prev-week');
+        const nextWeekBtn = document.getElementById('next-week');
+        const weekHeader = document.getElementById('week-header');
+        const weekGrid = document.getElementById('week-grid');
+
+        const sportConfigs = {
+            'Futebol': { particleColor: '#22c55e', color: 'bg-green-500', borderColor: 'border-green-500' }, 
+            'Basquete': { particleColor: '#f97316', color: 'bg-orange-500', borderColor: 'border-orange-500' }, 
+            'Tênis': { particleColor: '#eab308', color: 'bg-yellow-500', borderColor: 'border-yellow-500' }, 
+            'Outros Esportes': { particleColor: '#0ea5e9', color: 'bg-sky-500', borderColor: 'border-sky-500' }, 
+            'eSports': { particleColor: '#a855f7', color: 'bg-purple-500', borderColor: 'border-purple-500' },
+            'Criado por Utilizador': { particleColor: '#ec4899', color: 'bg-pink-500', borderColor: 'border-pink-500' }
         };
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzAmcjEF6zLt_QpiV7Jby-4GcPv9oAnMqv9Ed_JnBJBSCYMMBpyd_hUeBMlUBTAeX8Ruw/exec';
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-        const dynamicEventsCollection = collection(db, 'dynamic_events');
-        const usersCollection = collection(db, 'users');
-        const notificationsCollection = collection(db, 'notifications');
+        const projectStatusConfig = {
+            "Criado!": { color: 'text-green-400', class: 'Criado' },
+            "Em projeto": { color: 'text-amber-400', class: 'Em-projeto' },
+            "Não utilizarei": { color: 'text-red-400', class: 'Não-utilizarei' }
+        };
 
-        document.addEventListener('DOMContentLoaded', async () => { 
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggleBtn = document.getElementById('sidebar-toggle');
-            const categoryFiltersContainer = document.getElementById('category-filters');
-            const prevMonthBtn = document.getElementById('prev-month');
-            const nextMonthBtn = document.getElementById('next-month');
-            const detailsPanel = document.getElementById('day-details-panel');
-            const detailsTitle = document.getElementById('details-title');
-            const detailsContent = document.getElementById('details-content');
-            const closeDetailsBtn = document.getElementById('close-details');
-            const activeTrailInfoPanel = document.getElementById('active-trail-info');
-            const trailEventNameEl = document.getElementById('trail-event-name');
-            const trailEventCategoryEl = document.getElementById('trail-event-category');
-            const trailEventDatesEl = document.getElementById('trail-event-dates');
-            const clearTrailBtn = document.getElementById('clear-trail-btn');
-            const addEventBtn = document.getElementById('add-event-btn');
-            const addEventModalOverlay = document.getElementById('add-event-modal-overlay');
-            const addEventModal = document.getElementById('add-event-modal');
-            const closeAddEventModalBtn = document.getElementById('close-add-event-modal');
-            const addEventForm = document.getElementById('add-event-form');
-            const eventTypeSelect = document.getElementById('event-type');
-            const eventLeagueInput = document.getElementById('event-league');
-            const eventCategorySelect = document.getElementById('event-category');
-            const competitionDatesContainer = document.getElementById('competition-dates');
-            const matchDateContainer = document.getElementById('match-date-container');
-            const startDateInput = document.getElementById('start-date');
-            const endDateInput = document.getElementById('end-date');
-            const matchDateInput = document.getElementById('match-date');
-            const creatorNameInput = document.getElementById('creator-name');
-            const loginButton = document.getElementById('login-button');
-            const logoutButton = document.getElementById('logout-button');
-            const userProfileArea = document.getElementById('user-profile-area');
-            const userPhoto = document.getElementById('user-photo');
-            const userName = document.getElementById('user-name');
-            const userDropdown = document.getElementById('user-dropdown');
-            const notificationModalOverlay = document.getElementById('notification-modal-overlay');
-            const closeModalBtn = document.getElementById('close-modal-btn');
-            const notificationContent = document.getElementById('notification-content');
-            const modalReminderActionMessage = document.getElementById('modal-reminder-action-message');
-            const nextEventPrompt = document.getElementById('next-event-prompt');
-            const promptTitleEl = document.getElementById('prompt-title');
-            const jumpToEventBtn = document.getElementById('jump-to-event-btn');
-            const jumpTextEl = document.getElementById('jump-text');
-            const jumpDateEl = document.getElementById('jump-date');
-            const searchInput = document.getElementById('event-search-input');
-            const searchResultsContainer = document.getElementById('search-results');
-            const setPasswordModalOverlay = document.getElementById('set-password-modal-overlay');
-            const closeSetPasswordModalBtn = document.getElementById('close-set-password-modal');
-            const setPasswordForm = document.getElementById('set-password-form');
-            const passwordErrorMsg = document.getElementById('password-error-msg');
-            const mentionModalOverlay = document.getElementById('mention-modal-overlay');
-            const mentionModalTitle = document.getElementById('mention-modal-title');
-            const mentionContextText = document.getElementById('mention-context-text');
-            const closeMentionModalBtn = document.getElementById('close-mention-modal');
-            const mentionUserSearchInput = document.getElementById('mention-user-search');
-            const mentionUserListEl = document.getElementById('mention-user-list');
-            const mentionFeedbackEl = document.getElementById('mention-feedback');
-            const notificationsContainer = document.getElementById('notifications-container');
-            const notificationsBellBtn = document.getElementById('notifications-bell-btn');
-            const notificationBadge = document.getElementById('notification-badge');
-            const notificationsPanel = document.getElementById('notifications-panel');
-            const notificationsList = document.getElementById('notifications-list');
-            const unreadFilterToggle = document.getElementById('unread-filter-toggle');
-            const myEventsPanel = document.getElementById('my-events-panel');
-            const closeMyEventsBtn = document.getElementById('close-my-events');
-            const myEventsContent = document.getElementById('my-events-content');
-            const myEventsLink = document.getElementById('my-events-link');
-            const myChatsLink = document.getElementById('my-chats-link');
-            const myChatsPanel = document.getElementById('my-chats-panel');
-            const closeMyChatsBtn = document.getElementById('close-my-chats');
-            const myChatsContent = document.getElementById('my-chats-content');
-            const chatRoomPanel = document.getElementById('chat-room-panel');
-            const chatRoomTitle = document.getElementById('chat-room-title');
-            const backToChatsListBtn = document.getElementById('back-to-chats-list');
-            const leaveChatBtn = document.getElementById('leave-chat-btn');
-            const chatMessages = document.getElementById('chat-messages');
-            const chatForm = document.getElementById('chat-form');
-            const chatMessageInput = document.getElementById('chat-message-input');
-            const statusTooltip = document.getElementById('status-tooltip');
-            const chatEntryToast = document.getElementById('chat-entry-toast');
-            const toastMessage = document.getElementById('toast-message');
-            const toastViewChatBtn = document.getElementById('toast-view-chat-btn');
-            const totalUnreadBadge = document.getElementById('total-unread-badge');
-            const chatMembersBtn = document.getElementById('chat-members-btn');
-            const chatMembersPanel = document.getElementById('chat-members-panel');
-            const closeChatMembersBtn = document.getElementById('close-chat-members');
-            const chatMembersContent = document.getElementById('chat-members-content');
-            const replyPreviewContainer = document.getElementById('reply-preview-container');
-            const editMessageModalOverlay = document.getElementById('edit-message-modal-overlay');
-            const editMessageModal = document.getElementById('edit-message-modal');
-            const editMessageForm = document.getElementById('edit-message-form');
-            const editMessageTextarea = document.getElementById('edit-message-textarea');
-            const cancelEditBtn = document.getElementById('cancel-edit-btn');
-            const reactionSelector = document.getElementById('reaction-selector');
-            
-            const viewSwitcher = document.getElementById('view-switcher');
-            const monthViewContainer = document.getElementById('month-view-container');
-            const weekViewContainer = document.getElementById('week-view-container');
-            const prevWeekBtn = document.getElementById('prev-week');
-            const nextWeekBtn = document.getElementById('next-week');
-            const weekHeader = document.getElementById('week-header');
-            const weekGrid = document.getElementById('week-grid');
+        let staticEvents = [];
+        let dynamicEvents = []; 
+        let currentUser = null;
+        let allUsers = [];
+        let unreadNotificationsListener = null;
+        let myNotifications = [];
+        let notificationsExpanded = false;
+        let activeCommentListeners = [];
+        let activeChatListener = null;
+        let activeChatUnreadListener = null;
+        let mentionCallback = null;
+        let initialEventIdToShow = null;
+        let statusTooltipTimer = null;
+        let chatMentions = [];
+        let replyingToMessage = null;
+        let editingMessage = null;
+        let currentView = 'month';
+        let currentDate = new Date();
+        let currentWeekDate = new Date();
+        let isAppInitialized = false;
+        let userApprovalListener = null;
 
-
-            const sportConfigs = {
-                'Futebol': { particleColor: '#22c55e', color: 'bg-green-500', borderColor: 'border-green-500' }, 
-                'Basquete': { particleColor: '#f97316', color: 'bg-orange-500', borderColor: 'border-orange-500' }, 
-                'Tênis': { particleColor: '#eab308', color: 'bg-yellow-500', borderColor: 'border-yellow-500' }, 
-                'Outros Esportes': { particleColor: '#0ea5e9', color: 'bg-sky-500', borderColor: 'border-sky-500' }, 
-                'eSports': { particleColor: '#a855f7', color: 'bg-purple-500', borderColor: 'border-purple-500' },
-                'Criado por Utilizador': { particleColor: '#ec4899', color: 'bg-pink-500', borderColor: 'border-pink-500' }
-            };
-
-            const projectStatusConfig = {
-                "Criado!": { color: 'text-green-400', class: 'Criado' },
-                "Em projeto": { color: 'text-amber-400', class: 'Em-projeto' },
-                "Não utilizarei": { color: 'text-red-400', class: 'Não-utilizarei' }
-            };
-
-            let staticEvents = [];
-            let dynamicEvents = []; 
-            let currentUser = null;
-            let allUsers = [];
-            let unreadNotificationsListener = null;
-            let myNotifications = [];
-            let notificationsExpanded = false;
-            let activeCommentListeners = [];
-            let activeChatListener = null;
-            let activeChatUnreadListener = null;
-            let mentionCallback = null;
-            let initialEventIdToShow = null;
-            let statusTooltipTimer = null;
-            let chatMentions = [];
-            let replyingToMessage = null;
-            let editingMessage = null;
-            
-            let currentView = 'month';
-            let currentDate = new Date();
-            let currentWeekDate = new Date();
+        logoutFromPendingBtn.addEventListener('click', () => {
+            signOut(auth);
+        });
 
             const checkUrlForEvent = () => {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -803,43 +827,83 @@
             let savedReminders = JSON.parse(localStorage.getItem('eventReminders')) || []; 
             let activeTrail = null; 
             
-            onAuthStateChanged(auth, async (user) => {
-                currentUser = user;
-                if (user) {
-                    userProfileArea.classList.remove('hidden');
-                    loginButton.classList.add('hidden');
-                    addEventBtn.style.visibility = 'visible';
-                    notificationsContainer.classList.remove('hidden');
-                    myEventsLink.classList.remove('hidden');
-                    myChatsLink.classList.remove('hidden');
-                    userPhoto.src = user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=374151&color=fff`;
-                    userName.textContent = user.displayName || user.email;
+             onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            const approvalOverlay = document.getElementById('approval-pending-overlay');
 
-                    const userDocRef = doc(db, 'users', user.uid);
-                    await setDoc(userDocRef, { displayName: user.displayName, email: user.email, photoURL: user.photoURL }, { merge: true });
+            // NOVO: Limpa o listener anterior e reseta o estado ao trocar de usuário ou fazer logout
+            if (userApprovalListener) {
+                userApprovalListener();
+                userApprovalListener = null;
+            }
+            isAppInitialized = false;
+            approvalOverlay.classList.add('hidden'); // Garante que o overlay suma ao fazer logout
 
-                    await fetchAllUsers();
-                    listenForNotifications(user.uid);
-                    listenForUnreadChats(user.uid);
+            if (user) {
+                // As ações visuais imediatas podem continuar aqui
+                userProfileArea.classList.remove('hidden');
+                loginButton.classList.add('hidden');
+                userPhoto.src = user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}&background=374151&color=fff`;
+                userName.textContent = user.displayName || user.email;
 
-                    const userDocSnap = await getDoc(userDocRef);
-                    const hasPassword = userDocSnap.exists() && userDocSnap.data().hasSetPassword;
+                const userDocRef = doc(db, 'users', user.uid);
+                // Salvar os dados básicos do usuário no Firestore (isso não requer aprovação)
+                await setDoc(userDocRef, { displayName: user.displayName, email: user.email, photoURL: user.photoURL, uid: user.uid }, { merge: true });
 
-                    if (!hasPassword) {
-                        openSetPasswordModal();
+                // NOVO: Escuta em tempo real o documento do usuário para verificar a aprovação
+                userApprovalListener = onSnapshot(userDocRef, (userDoc) => {
+                    const isApproved = userDoc.exists() && userDoc.data().approved === true;
+
+                    if (isApproved) {
+                        // Se aprovado, esconde o overlay
+                        approvalOverlay.classList.add('hidden');
+
+                        // Inicializa o aplicativo completo APENAS UMA VEZ
+                        if (!isAppInitialized) {
+                            console.log("Usuário aprovado! Inicializando o app...");
+                            
+                            // MOVIDO: Toda a lógica de inicialização do app agora fica aqui dentro
+                            initializeApp(); // Chama a função principal que carrega tudo
+                            
+                            // MOVIDO: As lógicas que dependem de dados (notifications, chat, etc)
+                            fetchAllUsers();
+                            listenForNotifications(user.uid);
+                            listenForUnreadChats(user.uid);
+                            addEventBtn.style.visibility = 'visible';
+                            notificationsContainer.classList.remove('hidden');
+
+                            isAppInitialized = true; // Marca o app como inicializado
+                        }
+                        
+                        // A verificação de senha pode continuar aqui, pois só será relevante para um usuário aprovado
+                        const hasPassword = userDoc.exists() && userDoc.data().hasSetPassword;
+                        if (!hasPassword) {
+                            openSetPasswordModal();
+                        }
+
+                    } else {
+                        // Se NÃO aprovado, mostra o overlay
+                        console.log("Usuário pendente de aprovação.");
+                        approvalOverlay.classList.remove('hidden');
+                        isAppInitialized = false; // Garante que o app não seja considerado inicializado
+                        addEventBtn.style.visibility = 'hidden';
+                        notificationsContainer.classList.add('hidden');
                     }
-                } else {
-                    userProfileArea.classList.add('hidden');
-                    loginButton.classList.remove('hidden');
-                    addEventBtn.style.visibility = 'hidden';
-                    notificationsContainer.classList.add('hidden');
-                     myEventsLink.classList.add('hidden');
-                     myChatsLink.classList.add('hidden');
-                    if (unreadNotificationsListener) unreadNotificationsListener();
-                    if (activeChatUnreadListener) activeChatUnreadListener();
-                }
-                updateAllEvents();
-            });
+                });
+
+            } else {
+                // Lógica de logout (permanece a mesma)
+                userProfileArea.classList.add('hidden');
+                loginButton.classList.remove('hidden');
+                addEventBtn.style.visibility = 'hidden';
+                notificationsContainer.classList.add('hidden');
+                myEventsLink.classList.add('hidden');
+                myChatsLink.classList.add('hidden');
+                if (unreadNotificationsListener) unreadNotificationsListener();
+                if (activeChatUnreadListener) activeChatUnreadListener();
+                updateAllEvents(); // Atualiza para a visão de "deslogado"
+            }
+        });
 
             const listenForNotifications = (userId) => {
                 const q = query(notificationsCollection, where("recipientUid", "==", userId));
@@ -1843,19 +1907,20 @@
             };
 
             const initializeApp = () => {
-                checkUrlForEvent();
-                document.body.classList.add('loaded');
-                listenForDynamicEvents();
-                populateFilters();
-                const filterItems = document.querySelectorAll('.filter-item, .nav-item');
-                filterItems.forEach((item, index) => {
-                    setTimeout(() => {
-                        item.classList.add('visible');
-                    }, 100 + (index * 50));
-                });
-                applyFilters();
-                setTimeout(checkAndNotifyUpcomingEvents, 1500);
-            };
+            // MOVIDO: a chamada a esta função agora é feita DEPOIS da aprovação ser verificada.
+            checkUrlForEvent();
+            document.body.classList.add('loaded');
+            listenForDynamicEvents();
+            populateFilters();
+            const filterItems = document.querySelectorAll('.filter-item, .nav-item');
+            filterItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.classList.add('visible');
+                }, 100 + (index * 50));
+            });
+            applyFilters();
+            setTimeout(checkAndNotifyUpcomingEvents, 1500);
+        };
 
             const closeModal = () => {
                 const modalOverlay = document.getElementById('notification-modal-overlay');
