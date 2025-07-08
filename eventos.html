@@ -238,6 +238,46 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
+
+        /* Estilos para Evento Quente */
+        .calendar-day.hot-event-day {
+            position: relative;
+            overflow: hidden;
+            z-index: 1; 
+        }
+        .calendar-day.hot-event-day::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(255, 87, 34, 0.4), rgba(252, 142, 54, 0.3), rgba(245, 185, 43, 0.4));
+            z-index: -1;
+            animation: fire-animation 4s ease-in-out infinite;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        .calendar-day.hot-event-day:hover::before {
+            opacity: 1;
+        }
+        .calendar-day.hot-event-day.visible::before {
+            opacity: 0.7;
+        }
+        @keyframes fire-animation {
+            0% {
+                background-position: 0% 50%;
+                transform: scale(1.1) skew(-5deg);
+            }
+            50% {
+                background-position: 100% 50%;
+                transform: scale(1) skew(5deg);
+            }
+            100% {
+                background-position: 0% 50%;
+                transform: scale(1.1) skew(-5deg);
+            }
+        }
     </style>
 </head>
 <body class="text-gray-200">
@@ -310,7 +350,7 @@
                                 <a href="#" id="my-chats-link" class="relative flex justify-between items-center w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-600">
                                     <span>Chat de Eventos</span>
                                     <span id="total-unread-badge" class="chat-unread-badge hidden"></span>
-                                </a>
+                                
                                 <div class="border-t border-gray-600"></div>
                                 <a href="#" id="logout-button" class="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-600 hover:text-red-300">Sair</a>
                             </div>
@@ -332,7 +372,6 @@
                     </div>
                 </div>
                 
-                <!-- NOVO: Seletor de Visualização -->
                 <div class="flex justify-center mb-6 z-10 relative">
                     <div class="view-switcher" id="view-switcher">
                         <button data-view="month" class="active">Mês</button>
@@ -357,7 +396,6 @@
                     </button>
                 </div>
                 
-                <!-- Container da Visualização Mensal -->
                 <div id="month-view-container">
                     <div id="next-event-prompt" class="absolute inset-0 flex-col items-center justify-center bg-black bg-opacity-75 hidden z-20 rounded-lg p-8 text-center">
                         <p id="prompt-title" class="text-2xl font-bold text-white mb-4"></p>
@@ -386,7 +424,6 @@
                     </div>
                 </div>
 
-                <!-- NOVO: Container da Visualização Semanal -->
                 <div id="week-view-container" class="relative">
                     <div class="flex items-center justify-between mb-4">
                         <button id="prev-week" class="p-2 rounded-full hover:bg-gray-700 text-white z-10">&lt; Semana Anterior</button>
@@ -394,14 +431,12 @@
                         <button id="next-week" class="p-2 rounded-full hover:bg-gray-700 text-white z-10">Próxima Semana &gt;</button>
                     </div>
                     <div id="week-grid" class="grid grid-cols-1 md:grid-cols-7 gap-2">
-                        <!-- As colunas dos dias da semana serão injetadas aqui -->
                     </div>
                 </div>
 
             </main>
         </div>
 
-        <!-- Painel de Detalhes -->
         <div id="day-details-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 shadow-lg p-6 overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
                 <h2 id="details-title" class="text-2xl font-bold text-white">Eventos do Dia</h2>
@@ -410,7 +445,6 @@
             <div id="details-content" class="space-y-4"></div>
         </div>
 
-        <!-- Painel Meus Eventos Marcados -->
         <div id="my-events-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 shadow-lg p-6 overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-white">Meus Eventos Marcados</h2>
@@ -419,7 +453,6 @@
             <div id="my-events-content" class="space-y-4"></div>
         </div>
 
-        <!-- Painel Lista de Chats -->
         <div id="my-chats-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 shadow-lg p-6 overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-white">Chat de Eventos</h2>
@@ -428,7 +461,6 @@
             <div id="my-chats-content" class="space-y-4"></div>
         </div>
 
-        <!-- Painel do Chat -->
         <div id="chat-room-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-900 shadow-lg flex flex-col">
             <div class="flex justify-between items-center p-4 bg-gray-800 border-b border-gray-700">
                 <button id="back-to-chats-list" class="p-2 rounded-full hover:bg-gray-700">
@@ -454,7 +486,6 @@
             </form>
         </div>
 
-        <!-- Painel de Membros do Chat -->
         <div id="chat-members-panel" class="fixed top-0 right-0 h-full w-full max-w-md bg-gray-800 shadow-lg p-6 overflow-y-auto">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-2xl font-bold text-white">Membros do Chat</h2>
@@ -463,16 +494,13 @@
             <div id="chat-members-content" class="space-y-4"></div>
         </div>
 
-        <!-- Tooltip para Status -->
         <div id="status-tooltip" class="absolute hidden w-64 bg-gray-900 border border-gray-700 rounded-lg shadow-xl p-3 text-sm z-50"></div>
 
-        <!-- Toast de Entrada no Chat -->
         <div id="chat-entry-toast" class="fixed bottom-5 right-5 bg-green-500 text-white p-4 rounded-lg shadow-lg flex items-center gap-4 opacity-0 transform translate-y-10">
             <span id="toast-message"></span>
             <button id="toast-view-chat-btn" class="font-bold underline hover:text-green-100">Ver chat</button>
         </div>
 
-        <!-- Seletor de Reações -->
         <div id="reaction-selector" class="absolute hidden bg-gray-800 border border-gray-700 rounded-lg shadow-xl p-1 flex gap-1 z-50">
             <button class="reaction-option text-xl p-1 hover:bg-gray-600 rounded-md">👍</button>
             <button class="reaction-option text-xl p-1 hover:bg-gray-600 rounded-md">🎉</button>
@@ -480,7 +508,6 @@
         </div>
     </div>
 
-    <!-- Modais -->
     <div id="notification-modal-overlay" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden">
         <div id="notification-modal" class="modal-box bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg p-8 text-white scale-95 opacity-0">
             <h2 class="text-3xl font-bold text-center mb-2">🔥 Fique de Olho!</h2>
@@ -490,6 +517,7 @@
             <button id="close-modal-btn" class="w-full mt-8 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg">Explorar Calendário</button>
         </div>
     </div>
+
     <div id="add-event-modal-overlay" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden">
         <div id="add-event-modal" class="modal-box bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-lg p-8 text-white scale-95 opacity-0 transition-transform">
             <div class="flex justify-between items-center mb-6">
@@ -520,10 +548,23 @@
                 <select id="event-category" required class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500"></select>
                 <input type="text" id="event-league" placeholder="Campeonato (se for partida)" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500 hidden">
                 <textarea id="event-details" placeholder="Detalhes do evento..." rows="3" class="w-full bg-gray-700 p-2 rounded-lg border border-gray-600 focus:ring-2 focus:ring-indigo-500"></textarea>
+    
+                <div class="flex items-center justify-between py-2">
+                <label for="is-hot-event" class="flex flex-col cursor-pointer pr-4 flex-1">
+                    <span class="text-base font-medium text-white">🔥 Evento Quente?</span>
+                    <span class="text-xs text-gray-400">Destaca o evento no calendário com um efeito especial.</span>
+                </label>
+                <div class="relative inline-flex items-center">
+                    <input type="checkbox" id="is-hot-event" class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-focus:ring-4 peer-focus:ring-red-500/50 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                </div>
+            </div>
+    
                 <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg">Salvar Evento</button>
             </form>
         </div>
     </div>
+
     <div id="set-password-modal-overlay" class="modal-overlay fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm flex items-center justify-center hidden">
         <div id="set-password-modal" class="modal-box bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md p-8 text-white scale-95 opacity-0">
             <div class="flex justify-between items-center mb-6">
@@ -560,7 +601,6 @@
              <p id="mention-feedback" class="text-green-400 text-center mt-4 hidden"></p>
         </div>
     </div>
-    <!-- NOVO: Modal para Editar Mensagem -->
     <div id="edit-message-modal-overlay" class="modal-overlay fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center hidden">
         <div id="edit-message-modal" class="modal-box bg-gray-800 border border-gray-700 rounded-xl shadow-2xl w-full max-w-md p-8 text-white scale-95 opacity-0">
             <h2 class="text-2xl font-bold mb-4">Editar Mensagem</h2>
@@ -691,7 +731,6 @@
             const cancelEditBtn = document.getElementById('cancel-edit-btn');
             const reactionSelector = document.getElementById('reaction-selector');
             
-            // NOVOS Elementos para visualização de semana
             const viewSwitcher = document.getElementById('view-switcher');
             const monthViewContainer = document.getElementById('month-view-container');
             const weekViewContainer = document.getElementById('week-view-container');
@@ -733,10 +772,9 @@
             let replyingToMessage = null;
             let editingMessage = null;
             
-            // NOVO: Estado da aplicação
-            let currentView = 'month'; // 'month' ou 'week'
-            let currentDate = new Date(); // Para visualização de mês
-            let currentWeekDate = new Date(); // Para visualização de semana
+            let currentView = 'month';
+            let currentDate = new Date();
+            let currentWeekDate = new Date();
 
             const checkUrlForEvent = () => {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -875,7 +913,7 @@
 
             const updateAllEvents = () => {
                 allEvents = [...staticEvents, ...dynamicEvents];
-                applyFilters(); // This will now call renderCalendar
+                applyFilters();
                 const openDate = detailsPanel.dataset.date;
                 if (detailsPanel.classList.contains('open') && openDate) {
                     showDayDetails(openDate, allEvents);
@@ -996,7 +1034,6 @@
                  }
             }
             
-            // FUNÇÃO PRINCIPAL DE RENDERIZAÇÃO
             const renderCalendar = (filteredEvents) => {
                 if (currentView === 'month') {
                     monthViewContainer.style.display = 'block';
@@ -1012,7 +1049,7 @@
             const renderSingleCalendar = (gridId, headerId, date, events) => {
                 const calendarGrid = document.getElementById(gridId);
                 const monthYearHeader = document.getElementById(headerId);
-
+            
                 calendarGrid.innerHTML = '';
                 monthYearHeader.textContent = date.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
                 
@@ -1020,16 +1057,14 @@
                 const year = date.getFullYear();
                 const firstDayOfMonth = new Date(year, month, 1).getDay();
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
-
+            
                 for (let i = 0; i < firstDayOfMonth; i++) {
                     calendarGrid.insertAdjacentHTML('beforeend', '<div></div>');
                 }
-
+            
                 for (let day = 1; day <= daysInMonth; day++) {
                     const dayEl = document.createElement('div');
                     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-                    dayEl.dataset.date = dateStr;
-                    dayEl.className = 'calendar-day border border-gray-700 rounded-lg p-2 flex flex-col';
                     
                     const eventsOnDay = events.filter(e => {
                         const start = parseDate(e.data_inicio);
@@ -1039,15 +1074,23 @@
                     });
                     const eventsStartingOnDay = eventsOnDay.filter(e => e.data_inicio === dateStr);
                     const eventsEndingOnDay = eventsOnDay.filter(e => e.data_fim === dateStr && e.data_inicio !== e.data_fim);
-
+            
                     const hasReminderOnDay = eventsOnDay.some(event => savedReminders.includes(getEventUniqueId(event)));
+                    const hasHotEventOnDay = eventsOnDay.some(event => event.isHot);
+            
+                    dayEl.dataset.date = dateStr;
+                    dayEl.className = 'calendar-day border border-gray-700 rounded-lg p-2 flex flex-col';
+                    
+                    if (hasHotEventOnDay) {
+                        dayEl.classList.add('hot-event-day');
+                    }
                     
                     dayEl.innerHTML = `<div class="flex justify-between items-center">
-                                         <span class="font-bold">${day}</span>
-                                         <div class="flex space-x-1">
-                                             ${hasReminderOnDay ? '<span class="reminder-indicator-calendar">🔔</span>' : ''}
-                                         </div>
-                                     </div>`;
+                                             <span class="font-bold">${day}</span>
+                                             <div class="flex space-x-1">
+                                                 ${hasReminderOnDay ? '<span class="reminder-indicator-calendar">🔔</span>' : ''}
+                                             </div>
+                                         </div>`;
                     
                     if (eventsOnDay.length > 0) {
                         dayEl.classList.add('has-events');
@@ -1091,70 +1134,75 @@
                 });
             }
              
-            // FUNÇÃO DE SEMANA MODIFICADA
             const renderWeekView = (date, events) => {
-                weekGrid.innerHTML = '';
-                const startOfWeek = new Date(date);
-                startOfWeek.setDate(startOfWeek.getDate() - date.getDay()); // Inicia no Domingo
+    weekGrid.innerHTML = '';
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(startOfWeek.getDate() - date.getDay()); // Inicia no Domingo
 
-                const endOfWeek = new Date(startOfWeek);
-                endOfWeek.setDate(startOfWeek.getDate() + 6);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
 
-                weekHeader.textContent = `${formatDisplayDate(startOfWeek.toISOString().split('T')[0])} - ${formatDisplayDate(endOfWeek.toISOString().split('T')[0])}`;
+    weekHeader.textContent = `${formatDisplayDate(startOfWeek.toISOString().split('T')[0])} - ${formatDisplayDate(endOfWeek.toISOString().split('T')[0])}`;
 
-                const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const weekDays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
-                for(let i = 0; i < 7; i++) {
-                    const dayDate = new Date(startOfWeek);
-                    dayDate.setDate(startOfWeek.getDate() + i);
-                    const dateStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
-                    
-                    const dayColumn = document.createElement('div');
-                    dayColumn.className = 'week-day-column';
+    for(let i = 0; i < 7; i++) {
+        const dayDate = new Date(startOfWeek);
+        dayDate.setDate(startOfWeek.getDate() + i);
+        const dateStr = `${dayDate.getFullYear()}-${String(dayDate.getMonth() + 1).padStart(2, '0')}-${String(dayDate.getDate()).padStart(2, '0')}`;
+        
+        const dayColumn = document.createElement('div');
+        dayColumn.className = 'week-day-column';
 
-                    const today = new Date();
-                    const isToday = dayDate.getFullYear() === today.getFullYear() && dayDate.getMonth() === today.getMonth() && dayDate.getDate() === today.getDate();
+        const today = new Date();
+        const isToday = dayDate.getFullYear() === today.getFullYear() && dayDate.getMonth() === today.getMonth() && dayDate.getDate() === today.getDate();
 
-                    dayColumn.innerHTML = `<h3 class="font-bold text-lg text-center mb-4 ${isToday ? 'text-indigo-400' : ''}">${weekDays[i]} <span class="text-gray-400 text-base">${dayDate.getDate()}</span></h3>`;
-                    
-                    // MODIFICADO: Filtrar para mostrar eventos apenas nos dias de início ou fim.
-                    const eventsOnDay = events.filter(e => {
-                        return e.data_inicio === dateStr || e.data_fim === dateStr;
-                    });
-                    
-                    const eventsContainer = document.createElement('div');
-                    if (eventsOnDay.length > 0) {
-                        eventsOnDay.forEach(event => {
-                            const borderColor = sportConfigs[event.categoria]?.borderColor || 'border-gray-500';
-                            const eventCard = document.createElement('div');
-                            eventCard.className = `week-event-card ${borderColor}`;
-                            eventCard.dataset.date = dateStr;
-                            
-                            let dateInfo = '';
-                            if (event.data_inicio === dateStr && event.data_fim !== dateStr) {
-                                dateInfo = `<span class="text-xs text-green-400 font-semibold">Início</span>`;
-                            } else if (event.data_fim === dateStr && event.data_inicio !== dateStr) {
-                                dateInfo = `<span class="text-xs text-red-400 font-semibold">Fim</span>`;
-                            }
-                            // Para eventos de dia único, dateInfo permanecerá vazio, o que é o comportamento desejado.
-
-                            eventCard.innerHTML = `
-                                <div class="flex justify-between items-start">
-                                    <p class="font-bold text-white text-sm">${event.nome}</p>
-                                    ${dateInfo}
-                                </div>
-                                <p class="text-xs text-indigo-300 mt-1">${event.categoria}</p>
-                            `;
-                            eventCard.addEventListener('click', () => showDayDetails(dateStr, allEvents));
-                            eventsContainer.appendChild(eventCard);
-                        });
-                    } else {
-                        eventsContainer.innerHTML = `<p class="text-center text-gray-500 text-sm mt-8">Nenhum evento</p>`;
-                    }
-                    dayColumn.appendChild(eventsContainer);
-                    weekGrid.appendChild(dayColumn);
+        dayColumn.innerHTML = `<h3 class="font-bold text-lg text-center mb-4 ${isToday ? 'text-indigo-400' : ''}">${weekDays[i]} <span class="text-gray-400 text-base">${dayDate.getDate()}</span></h3>`;
+        
+        const eventsOnDay = events.filter(e => {
+            return e.data_inicio === dateStr || e.data_fim === dateStr;
+        });
+        
+        const eventsContainer = document.createElement('div');
+        if (eventsOnDay.length > 0) {
+            eventsOnDay.forEach(event => {
+                const eventCard = document.createElement('div');
+                eventCard.dataset.date = dateStr;
+                
+                // Aplica estilo de evento quente ou o normal
+                if (event.isHot) {
+                    eventCard.className = 'week-event-card border-l-4 border-orange-500 bg-red-900/40';
+                } else {
+                    const borderColor = sportConfigs[event.categoria]?.borderColor || 'border-gray-500';
+                    eventCard.className = `week-event-card ${borderColor}`;
                 }
-            };
+
+                let dateInfo = '';
+                if (event.data_inicio === dateStr && event.data_fim !== dateStr) {
+                    dateInfo = `<span class="text-xs text-green-400 font-semibold">Início</span>`;
+                } else if (event.data_fim === dateStr && event.data_inicio !== dateStr) {
+                    dateInfo = `<span class="text-xs text-red-400 font-semibold">Fim</span>`;
+                }
+                
+                const hotEventTitle = event.isHot ? '🔥 ' : '';
+
+                eventCard.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <p class="font-bold text-white text-sm">${hotEventTitle}${event.nome}</p>
+                        ${dateInfo}
+                    </div>
+                    <p class="text-xs text-indigo-300 mt-1">${event.categoria}</p>
+                `;
+                eventCard.addEventListener('click', () => showDayDetails(dateStr, allEvents));
+                eventsContainer.appendChild(eventCard);
+            });
+        } else {
+            eventsContainer.innerHTML = `<p class="text-center text-gray-500 text-sm mt-8">Nenhum evento</p>`;
+        }
+        dayColumn.appendChild(eventsContainer);
+        weekGrid.appendChild(dayColumn);
+    }
+};
 
             const renderSearchResults = (results) => {
                 searchResultsContainer.innerHTML = '';
@@ -1404,183 +1452,187 @@
             };
             
             const showDayDetails = (dateStr, events) => {
-                cleanupCommentListeners();
-                detailsPanel.dataset.date = dateStr;
-                const date = parseDate(dateStr);
-                detailsTitle.textContent = `Eventos de ${date.toLocaleDateString('pt-BR', { timeZone: 'UTC', dateStyle: 'full' })}`;
-                
-                const eventsOnDay = events.filter(e => e.data_inicio === dateStr || e.data_fim === dateStr);
-                
-                let contentHtml = '';
-                if (eventsOnDay.length > 0) {
-                     eventsOnDay.forEach(event => {
-                        const color = sportConfigs[event.categoria]?.color || 'bg-gray-500';
-                        let statusTag = '';
-                        if (event.data_inicio === dateStr) {
-                            statusTag = event.data_inicio === event.data_fim ? `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${color} text-white bg-opacity-80">Evento Único</span>` : `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${color} text-white bg-opacity-80">Início do Evento</span>`;
-                        } else if (event.data_fim === dateStr) {
-                            statusTag = `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-gray-200 bg-gray-600">Fim do Evento</span>`;
-                        }
+    cleanupCommentListeners();
+    detailsPanel.dataset.date = dateStr;
+    const date = parseDate(dateStr);
+    detailsTitle.textContent = `Eventos de ${date.toLocaleDateString('pt-BR', { timeZone: 'UTC', dateStyle: 'full' })}`;
+    
+    const eventsOnDay = events.filter(e => e.data_inicio === dateStr || e.data_fim === dateStr);
+    
+    let contentHtml = '';
+    if (eventsOnDay.length > 0) {
+         eventsOnDay.forEach(event => {
+            const color = sportConfigs[event.categoria]?.color || 'bg-gray-500';
+            let statusTag = '';
+            if (event.data_inicio === dateStr) {
+                statusTag = event.data_inicio === event.data_fim ? `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${color} text-white bg-opacity-80">Evento Único</span>` : `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full ${color} text-white bg-opacity-80">Início do Evento</span>`;
+            } else if (event.data_fim === dateStr) {
+                statusTag = `<span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full text-gray-200 bg-gray-600">Fim do Evento</span>`;
+            }
 
-                        const isReminderSet = savedReminders.includes(getEventUniqueId(event));
-                        const canDelete = event.isDynamic && currentUser && event.creatorId === currentUser.uid;
-                        const canInteract = currentUser && event.isDynamic;
+            const isReminderSet = savedReminders.includes(getEventUniqueId(event));
+            const canDelete = event.isDynamic && currentUser && event.creatorId === currentUser.uid;
+            const canInteract = currentUser && event.isDynamic;
 
-                        contentHtml += `
-                            <div class="event-details-wrapper bg-gray-700/50 p-4 rounded-lg" data-event-id="${event.isDynamic ? event.id : ''}">
-                                <div class="flex items-start space-x-3 mb-4">
-                                    <div class="event-card-clickable relative flex-1 bg-gray-700 p-4 rounded-lg cursor-pointer transition-colors hover:bg-gray-600" 
-                                        data-name="${event.nome}" data-category="${event.categoria}" data-start="${event.data_inicio}" data-end="${event.data_fim}" data-color="${color}" data-event-unique-id="${getEventUniqueId(event)}">
-                                        <div class="flex justify-between items-start mb-2">
-                                            <h3 class="text-lg font-bold text-white flex-1 pr-2">${event.nome}</h3>
-                                            ${statusTag}
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <p class="text-sm text-indigo-400 font-semibold">${event.categoria}</p>
-                                            ${event.isDynamic ? `<span class="creator-tag text-xs text-amber-400" title="Criado por ${event.creatorName}">👑</span>` : ''}
-                                        </div>
-                                        <p class="text-sm text-gray-300 mt-2">${event.descricao || ''}</p>
-                                        ${canDelete ? `<button class="dynamic-event-delete-btn" data-id="${event.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>` : ''}
-                                    </div>
-                                    <div class="flex flex-col space-y-2 relative">
-                                        <button class="reminder-bell ${isReminderSet ? 'active' : ''} p-2 rounded-full hover:bg-gray-600 flex-shrink-0" data-event-unique-id="${getEventUniqueId(event)}" title="Ativar/Desativar lembrete">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22a2.98 2.98 0 002.818-2H9.182A2.98 2.98 0 0012 22zm7-7v-5.273A6.994 6.994 0 0013 2.127V2a1 1 0 00-2 0v.127A6.994 6.994 0 005 9.727V15l-2 2v1h18v-1l-2-2z"/></svg>
-                                        </button>
-                                        ${canInteract ? `
-                                        <button class="mention-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0" data-event-id="${event.id}" data-event-name="${event.nome}" title="Mencionar utilizador">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M16 14.5c2.485 0 4.5-2.015 4.5-4.5S18.485 5.5 16 5.5s-4.5 2.015-4.5 4.5c0 .335.045.66.125.97L3 17.5v3.5h3.5l8.03-8.03c.31.08.635.125.97.125zM10 21H5v-5l9-9 5 5-9 9z"/></svg>
-                                        </button>
-                                        <button class="status-icon-btn status-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0" data-event-id="${event.id}" title="Definir Status">
-                                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v2a2 2 0 01-2 2H7a2 2 0 01-2-2V4zm11.293 3.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L9 12.586l6.293-6.293a1 1 0 011.414 0z"></path></svg>
-                                        </button>
-                                        <div class="status-popup absolute right-full top-0 mr-2 w-40 bg-gray-900 border border-gray-700 rounded-lg shadow-xl hidden z-10 p-2 space-y-1">
-                                            <button data-status="Criado!" class="w-full text-left text-sm p-2 rounded hover:bg-green-500/20 text-green-400">Criado!</button>
-                                            <button data-status="Em projeto" class="w-full text-left text-sm p-2 rounded hover:bg-amber-500/20 text-amber-400">Em projeto</button>
-                                            <button data-status="Não utilizarei" class="w-full text-left text-sm p-2 rounded hover:bg-red-500/20 text-red-400">Não utilizarei</button>
-                                        </div>
-                                        ` : ''}
-                                    </div>
-                                </div>
-                                ${event.isDynamic ? `<div id="comments-section-${event.id}" class="mt-4"></div>` : ''}
-                            </div>`;
-                    });
-                } else {
-                    contentHtml = '<p>Nenhum evento para este dia com os filtros atuais.</p>';
-                }
-                
-                detailsContent.innerHTML = contentHtml;
-                detailsPanel.classList.add('open');
+            // Define classes especiais se o evento for "quente"
+            const hotEventWrapperClass = event.isHot ? 'bg-red-900/40 border border-orange-500/80' : 'bg-gray-700/50';
+            const hotEventTitle = event.isHot ? '🔥 ' : '';
 
-                eventsOnDay.forEach(event => {
-                    if (event.isDynamic) {
-                        const commentsContainer = document.getElementById(`comments-section-${event.id}`);
-                        if (commentsContainer) {
-                            loadCommentsUI(event.id, commentsContainer);
-                        }
+            contentHtml += `
+                <div class="event-details-wrapper p-4 rounded-lg ${hotEventWrapperClass}" data-event-id="${event.isDynamic ? event.id : ''}">
+                    <div class="flex items-start space-x-3 mb-4">
+                        <div class="event-card-clickable relative flex-1 bg-gray-700 p-4 rounded-lg cursor-pointer transition-colors hover:bg-gray-600" 
+                            data-name="${event.nome}" data-category="${event.categoria}" data-start="${event.data_inicio}" data-end="${event.data_fim}" data-color="${color}" data-event-unique-id="${getEventUniqueId(event)}">
+                            <div class="flex justify-between items-start mb-2">
+                                <h3 class="text-lg font-bold text-white flex-1 pr-2">${hotEventTitle}${event.nome}</h3>
+                                ${statusTag}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <p class="text-sm text-indigo-400 font-semibold">${event.categoria}</p>
+                                ${event.isDynamic ? `<span class="creator-tag text-xs text-amber-400" title="Criado por ${event.creatorName}">👑</span>` : ''}
+                            </div>
+                            <p class="text-sm text-gray-300 mt-2">${event.descricao || ''}</p>
+                            ${canDelete ? `<button class="dynamic-event-delete-btn" data-id="${event.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>` : ''}
+                        </div>
+                        <div class="flex flex-col space-y-2 relative">
+                            <button class="reminder-bell ${isReminderSet ? 'active' : ''} p-2 rounded-full hover:bg-gray-600 flex-shrink-0" data-event-unique-id="${getEventUniqueId(event)}" title="Ativar/Desativar lembrete">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22a2.98 2.98 0 002.818-2H9.182A2.98 2.98 0 0012 22zm7-7v-5.273A6.994 6.994 0 0013 2.127V2a1 1 0 00-2 0v.127A6.994 6.994 0 005 9.727V15l-2 2v1h18v-1l-2-2z"/></svg>
+                            </button>
+                            ${canInteract ? `
+                            <button class="mention-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0" data-event-id="${event.id}" data-event-name="${event.nome}" title="Mencionar utilizador">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M16 14.5c2.485 0 4.5-2.015 4.5-4.5S18.485 5.5 16 5.5s-4.5 2.015-4.5 4.5c0 .335.045.66.125.97L3 17.5v3.5h3.5l8.03-8.03c.31.08.635.125.97.125zM10 21H5v-5l9-9 5 5-9 9z"/></svg>
+                            </button>
+                            <button class="status-icon-btn status-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0" data-event-id="${event.id}" title="Definir Status">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v2a2 2 0 01-2 2H7a2 2 0 01-2-2V4zm11.293 3.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L9 12.586l6.293-6.293a1 1 0 011.414 0z"></path></svg>
+                            </button>
+                            <div class="status-popup absolute right-full top-0 mr-2 w-40 bg-gray-900 border border-gray-700 rounded-lg shadow-xl hidden z-10 p-2 space-y-1">
+                                <button data-status="Criado!" class="w-full text-left text-sm p-2 rounded hover:bg-green-500/20 text-green-400">Criado!</button>
+                                <button data-status="Em projeto" class="w-full text-left text-sm p-2 rounded hover:bg-amber-500/20 text-amber-400">Em projeto</button>
+                                <button data-status="Não utilizarei" class="w-full text-left text-sm p-2 rounded hover:bg-red-500/20 text-red-400">Não utilizarei</button>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ${event.isDynamic ? `<div id="comments-section-${event.id}" class="mt-4"></div>` : ''}
+                </div>`;
+        });
+    } else {
+        contentHtml = '<p>Nenhum evento para este dia com os filtros atuais.</p>';
+    }
+    
+    detailsContent.innerHTML = contentHtml;
+    detailsPanel.classList.add('open');
 
-                        const statusBtn = detailsContent.querySelector(`.status-icon-btn[data-event-id="${event.id}"]`);
-                        if(statusBtn) {
-                            let currentStatus = null;
-                            const statusDocRef = doc(db, 'dynamic_events', event.id, 'status', currentUser.uid);
-                            getDoc(statusDocRef).then(docSnap => {
-                                if (docSnap.exists()) {
-                                    currentStatus = docSnap.data().status;
-                                    statusBtn.className = 'status-icon-btn status-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0';
-                                    statusBtn.classList.add(projectStatusConfig[currentStatus].class);
-                                }
-                            });
+    eventsOnDay.forEach(event => {
+        if (event.isDynamic) {
+            const commentsContainer = document.getElementById(`comments-section-${event.id}`);
+            if (commentsContainer) {
+                loadCommentsUI(event.id, commentsContainer);
+            }
 
-                            const statusPopup = statusBtn.nextElementSibling;
-                            statusBtn.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                document.querySelectorAll('.status-popup').forEach(p => {
-                                    if (p !== statusPopup) p.classList.add('hidden');
-                                });
-                                statusPopup.classList.toggle('hidden');
-                            });
-
-                            statusPopup.querySelectorAll('button').forEach(button => {
-                                button.addEventListener('click', async () => {
-                                    const newStatus = button.dataset.status;
-                                    const oldStatus = currentStatus;
-                                    if (newStatus === currentStatus) {
-                                        await setUserEventStatus(event.id, null, null, null, oldStatus);
-                                        currentStatus = null;
-                                        statusBtn.className = 'status-icon-btn status-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0';
-                                    } else {
-                                        await setUserEventStatus(event.id, event.nome, event.data_inicio, newStatus, oldStatus);
-                                        currentStatus = newStatus;
-                                        statusBtn.className = 'status-icon-btn status-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0';
-                                        statusBtn.classList.add(projectStatusConfig[newStatus].class);
-                                    }
-                                    statusPopup.classList.add('hidden');
-                                });
-                            });
-
-                            statusBtn.addEventListener('mouseenter', (e) => {
-                                clearTimeout(statusTooltipTimer);
-                                statusTooltipTimer = setTimeout(async () => {
-                                    showStatusTooltip(statusBtn, event.id);
-                                }, 1000);
-                            });
-                            statusBtn.addEventListener('mouseleave', () => {
-                                clearTimeout(statusTooltipTimer);
-                                setTimeout(() => {
-                                    if (!statusTooltip.matches(':hover')) {
-                                        statusTooltip.classList.add('hidden');
-                                    }
-                                }, 300);
-                            });
-                        }
+            const statusBtn = detailsContent.querySelector(`.status-icon-btn[data-event-id="${event.id}"]`);
+            if(statusBtn) {
+                let currentStatus = null;
+                const statusDocRef = doc(db, 'dynamic_events', event.id, 'status', currentUser.uid);
+                getDoc(statusDocRef).then(docSnap => {
+                    if (docSnap.exists()) {
+                        currentStatus = docSnap.data().status;
+                        statusBtn.className = 'status-icon-btn status-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0';
+                        statusBtn.classList.add(projectStatusConfig[currentStatus].class);
                     }
                 });
-                
-                detailsContent.querySelectorAll('.event-card-clickable').forEach(card => {
-                    card.addEventListener('click', (e) => {
-                        if (e.target.closest('.reminder-bell') || e.target.closest('.dynamic-event-delete-btn') || e.target.closest('.mention-icon') || e.target.closest('.status-icon-btn')) {
-                            return;
+
+                const statusPopup = statusBtn.nextElementSibling;
+                statusBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    document.querySelectorAll('.status-popup').forEach(p => {
+                        if (p !== statusPopup) p.classList.add('hidden');
+                    });
+                    statusPopup.classList.toggle('hidden');
+                });
+
+                statusPopup.querySelectorAll('button').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const newStatus = button.dataset.status;
+                        const oldStatus = currentStatus;
+                        if (newStatus === currentStatus) {
+                            await setUserEventStatus(event.id, null, null, null, oldStatus);
+                            currentStatus = null;
+                            statusBtn.className = 'status-icon-btn status-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0';
+                        } else {
+                            await setUserEventStatus(event.id, event.nome, event.data_inicio, newStatus, oldStatus);
+                            currentStatus = newStatus;
+                            statusBtn.className = 'status-icon-btn status-icon p-2 rounded-full hover:bg-gray-600 flex-shrink-0';
+                            statusBtn.classList.add(projectStatusConfig[newStatus].class);
                         }
-                        clearActiveTrail(); 
-                        activeTrail = {
-                            name: card.dataset.name,
-                            category: card.dataset.category,
-                            start: card.dataset.start,
-                            end: card.dataset.end,
-                            trailClasses: ['event-trail', `${card.dataset.color}/30`]
-                        };
-                        drawActiveTrailOnDOM();
+                        statusPopup.classList.add('hidden');
                     });
                 });
 
-                detailsContent.querySelectorAll('.reminder-bell').forEach(bell => {
-                    bell.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const eventUniqueId = e.currentTarget.dataset.eventUniqueId;
-                        const eventData = allEvents.find(e => getEventUniqueId(e) === eventUniqueId);
-                        if (eventData) {
-                            toggleReminder(eventData);
+                statusBtn.addEventListener('mouseenter', (e) => {
+                    clearTimeout(statusTooltipTimer);
+                    statusTooltipTimer = setTimeout(async () => {
+                        showStatusTooltip(statusBtn, event.id);
+                    }, 1000);
+                });
+                statusBtn.addEventListener('mouseleave', () => {
+                    clearTimeout(statusTooltipTimer);
+                    setTimeout(() => {
+                        if (!statusTooltip.matches(':hover')) {
+                            statusTooltip.classList.add('hidden');
                         }
-                    });
+                    }, 300);
                 });
-                
-                detailsContent.querySelectorAll('.mention-icon').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                         e.stopPropagation();
-                         const eventId = btn.dataset.eventId;
-                         const eventName = btn.dataset.eventName;
-                         openMentionModal('event', { eventId, eventName });
-                    });
-                });
-
-                detailsContent.querySelectorAll('.dynamic-event-delete-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        if (confirm('Tem certeza que deseja excluir este evento?')) {
-                           deleteDynamicEvent(btn.dataset.id);
-                        }
-                    });
-                });
+            }
+        }
+    });
+    
+    detailsContent.querySelectorAll('.event-card-clickable').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.reminder-bell') || e.target.closest('.dynamic-event-delete-btn') || e.target.closest('.mention-icon') || e.target.closest('.status-icon-btn')) {
+                return;
+            }
+            clearActiveTrail(); 
+            activeTrail = {
+                name: card.dataset.name,
+                category: card.dataset.category,
+                start: card.dataset.start,
+                end: card.dataset.end,
+                trailClasses: ['event-trail', `${card.dataset.color}/30`]
             };
+            drawActiveTrailOnDOM();
+        });
+    });
+
+    detailsContent.querySelectorAll('.reminder-bell').forEach(bell => {
+        bell.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const eventUniqueId = e.currentTarget.dataset.eventUniqueId;
+            const eventData = allEvents.find(e => getEventUniqueId(e) === eventUniqueId);
+            if (eventData) {
+                toggleReminder(eventData);
+            }
+        });
+    });
+    
+    detailsContent.querySelectorAll('.mention-icon').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+             e.stopPropagation();
+             const eventId = btn.dataset.eventId;
+             const eventName = btn.dataset.eventName;
+             openMentionModal('event', { eventId, eventName });
+        });
+    });
+
+    detailsContent.querySelectorAll('.dynamic-event-delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('Tem certeza que deseja excluir este evento?')) {
+               deleteDynamicEvent(btn.dataset.id);
+            }
+        });
+    });
+};
 
             const populateFilters = () => {
                 const categories = Object.keys(sportConfigs);
@@ -1594,6 +1646,12 @@
                     <label class="flex items-center space-x-2 cursor-pointer filter-item">
                         <input type="radio" name="category" value="Lembretes" class="category-filter bg-gray-700 border-gray-600 rounded-full text-yellow-400 focus:ring-yellow-400">
                         <span>Meus Lembretes 🔔</span>
+                    </label>`;
+
+                filterHtml += `
+                    <label class="flex items-center space-x-2 cursor-pointer filter-item">
+                        <input type="radio" name="category" value="HotEvents" class="category-filter bg-gray-700 border-gray-600 rounded-full text-red-500 focus:ring-red-500">
+                        <span class="text-red-400 font-semibold">🔥 Apenas Eventos Quentes</span>
                     </label>`;
 
                 categories.forEach(cat => {
@@ -1757,7 +1815,7 @@
                 const selectedCategory = selectedCategoryRadio.value;
                 allEvents = [...staticEvents, ...dynamicEvents];
                 let filteredEvents = [];
-
+            
                 if (selectedCategory === 'Todos') {
                     filteredEvents = allEvents;
                     const allColors = Object.values(sportConfigs).map(c => c.particleColor);
@@ -1766,13 +1824,17 @@
                     filteredEvents = allEvents.filter(event => savedReminders.includes(getEventUniqueId(event)));
                     loadParticles(['#facc15']); 
                 } 
+                else if (selectedCategory === 'HotEvents') { 
+                    filteredEvents = allEvents.filter(event => event.isHot);
+                    loadParticles(['#ff5722', '#ffc107']);
+                } 
                 else {
                     filteredEvents = allEvents.filter(event => event.categoria === selectedCategory);
                     const color = sportConfigs[selectedCategory]?.particleColor || '#ffffff';
                     loadParticles([color]);
                 }
-
-                renderCalendar(filteredEvents); // Chama a função de renderização principal
+            
+                renderCalendar(filteredEvents);
                 checkAndShowJumpPrompt(filteredEvents);
             };
 
@@ -1803,6 +1865,7 @@
                     alert("Você precisa estar logado para adicionar um evento.");
                     return;
                 }
+                addEventForm.reset(); 
                 creatorNameInput.value = currentUser.displayName;
                 addEventModalOverlay.classList.remove('hidden');
                 setTimeout(() => addEventModal.classList.remove('scale-95', 'opacity-0'), 10);
@@ -1818,7 +1881,7 @@
                 
                 const eventType = eventTypeSelect.value;
                 let startDate, endDate;
-
+            
                 if (eventType === 'Partida') {
                     startDate = matchDateInput.value;
                     endDate = startDate;
@@ -1826,11 +1889,13 @@
                     startDate = startDateInput.value;
                     endDate = endDateInput.value;
                 }
-
+            
                 if (!startDate) {
                     alert("Por favor, selecione uma data.");
                     return;
                 }
+            
+                const isHot = document.getElementById('is-hot-event').checked;
                 
                 const eventData = {
                     creatorName: creatorNameInput.value,
@@ -1842,9 +1907,10 @@
                     campeonato: eventLeagueInput.value,
                     descricao: document.getElementById('event-details').value,
                     creatorId: currentUser.uid, 
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
+                    isHot: isHot
                 };
-
+            
                 saveDynamicEvent(eventData);
                 addEventForm.reset();
                 closeAddEventModal();
@@ -2290,15 +2356,12 @@
             closeAddEventModalBtn.addEventListener('click', closeAddEventModal);
             addEventModalOverlay.addEventListener('click', (e) => { if(e.target === addEventModalOverlay) closeAddEventModal(); });
             
-            // Navegação Mensal
             prevMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() - 2); applyFilters(); });
             nextMonthBtn.addEventListener('click', () => { currentDate.setMonth(currentDate.getMonth() + 2); applyFilters(); });
 
-            // NOVO: Navegação Semanal
             prevWeekBtn.addEventListener('click', () => { currentWeekDate.setDate(currentWeekDate.getDate() - 7); applyFilters(); });
             nextWeekBtn.addEventListener('click', () => { currentWeekDate.setDate(currentWeekDate.getDate() + 7); applyFilters(); });
             
-            // NOVO: Listener para o seletor de visualização
             viewSwitcher.addEventListener('click', (e) => {
                 const button = e.target.closest('button');
                 if (!button) return;
@@ -2308,11 +2371,9 @@
 
                 currentView = view;
                 
-                // Atualiza o botão ativo
                 viewSwitcher.querySelector('.active').classList.remove('active');
                 button.classList.add('active');
 
-                // Renderiza a nova visualização
                 applyFilters();
             });
 
